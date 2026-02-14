@@ -1,127 +1,386 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Book Summary Generator</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <title>Bookish - AI Book Explorer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
     <style>
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --bg: #FAF9F7;
+            --surface: #FFFFFF;
+            --text: #2D2B28;
+            --text-secondary: #6B6560;
+            --accent: #D97757;
+            --accent-hover: #C4623F;
+            --border: #E8E4DF;
+            --input-bg: #FAF9F7;
+            --result-bg: #FDF8F5;
+            --error-bg: #FEF2F2;
+            --error-text: #B91C1C;
+            --error-border: #FECACA;
+        }
+
         body {
-            font-family: 'Poppins', sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
             display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px 20px;
+            line-height: 1.6;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-family: 'Libre Baskerville', Georgia, serif;
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 32px;
+            width: 100%;
+            max-width: 560px;
+            margin-bottom: 24px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+            letter-spacing: 0.02em;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            font-size: 0.95rem;
+            font-family: 'Inter', sans-serif;
+            background: var(--input-bg);
+            color: var(--text);
+            transition: border-color 0.2s, box-shadow 0.2s;
+            outline: none;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(217, 119, 87, 0.12);
+        }
+
+        .form-group input::placeholder {
+            color: #B0AAA3;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            padding: 13px 20px;
+            border: none;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            font-family: 'Inter', sans-serif;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        .btn-primary {
+            background-color: var(--accent);
+            color: #FFFFFF;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--accent-hover);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+            margin-top: 10px;
+        }
+
+        .btn-secondary:hover {
+            background-color: var(--input-bg);
+        }
+
+        .result-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 32px;
+            width: 100%;
+            max-width: 560px;
+            animation: fadeIn 0.4s ease;
+        }
+
+        .result-card .result-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 6px;
+        }
+
+        .result-card .result-header h2 {
+            font-family: 'Libre Baskerville', Georgia, serif;
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .result-card .result-meta {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+        }
+
+        .result-card .result-body {
+            background: var(--result-bg);
+            border-radius: 10px;
+            padding: 20px;
+            white-space: pre-line;
+            font-size: 0.92rem;
+            line-height: 1.75;
+            color: var(--text);
+        }
+
+        .error-box {
+            background: var(--error-bg);
+            border: 1px solid var(--error-border);
+            border-radius: 10px;
+            padding: 14px 18px;
+            color: var(--error-text);
+            font-size: 0.9rem;
+            margin-bottom: 16px;
+        }
+
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(250, 249, 247, 0.8);
+            z-index: 100;
             justify-content: center;
             align-items: center;
-            height: 100vh;
-            margin: 0;
-            background-color: #f4f4f9;
+            flex-direction: column;
+            gap: 16px;
         }
 
-        .container {
-            background-color: #fff;
-            padding: 40px;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-            max-width: 500px;
-            width: 100%;
+        .loading-overlay.active {
+            display: flex;
+        }
+
+        .spinner {
+            width: 36px;
+            height: 36px;
+            border: 3px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        .loading-text {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .footer {
+            margin-top: 40px;
             text-align: center;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
         }
 
-        h1 {
-            margin-bottom: 24px;
-            font-size: 2rem;
-            color: #333;
+        .footer a {
+            color: var(--accent);
+            text-decoration: none;
         }
 
-        label {
-            font-weight: 600;
-            margin-bottom: 6px;
-            display: block;
-            text-align: left;
+        .action-chips {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
         }
 
-        input, select, button {
-            width: 100%;
-            padding: 12px;
-            margin: 12px 0;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            font-size: 1rem;
-        }
-
-        button {
-            background-color: #4CAF50;
-            color: white;
-            border: none;
+        .action-chip {
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: var(--input-bg);
             cursor: pointer;
-            font-weight: 600;
-            transition: background-color 0.3s ease;
+            text-align: center;
+            font-size: 0.85rem;
+            font-family: 'Inter', sans-serif;
+            color: var(--text);
+            transition: all 0.2s;
         }
 
-        button:hover {
-            background-color: #45a049;
+        .action-chip:hover {
+            border-color: var(--accent);
         }
 
-        .secondary-btn {
-            background-color: #ddd;
-            color: #333;
+        .action-chip.selected {
+            border-color: var(--accent);
+            background: var(--result-bg);
+            color: var(--accent);
+            font-weight: 500;
         }
 
-        .secondary-btn:hover {
-            background-color: #ccc;
+        .action-chip:last-child:nth-child(odd) {
+            grid-column: 1 / -1;
         }
 
-        #result {
-            margin-top: 30px;
-            padding: 20px;
-            background-color: #e8f5e9;
-            border: 1px solid #4CAF50;
-            border-radius: 8px;
-            text-align: left;
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 480px) {
+            body { padding: 24px 16px; }
+            .header h1 { font-size: 1.6rem; }
+            .card, .result-card { padding: 24px; }
+            .action-chips { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <h1>📚 Book Summary Generator</h1>
-        <form method="POST">
-            <label for="book_name">Book Name:</label>
-            <input type="text" id="book_name" name="book_name" required>
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner"></div>
+        <div class="loading-text">Reading the shelves...</div>
+    </div>
 
-            <label for="author_name">Author Name:</label>
-            <input type="text" id="author_name" name="author_name" required>
+    <div class="header">
+        <h1>Bookish</h1>
+        <p>Explore any book with AI-powered insights</p>
+    </div>
 
-            <label for="action">Choose an Action:</label>
-            <select id="action" name="action">
-                <option value="summary">Make a summary</option>
-                <option value="alternate_ending">Alternate ending</option>
-                <option value="key_points">Key 5 Points</option>
-                <option value="main_plot">Main Plot</option>
-                <option value="suggestions">Suggest Similar Books</option>
-            </select>
+    <div class="card">
+        <form method="POST" id="bookForm">
 
-            <button type="submit">Get Result Now</button>
+            {% if error %}
+            <div class="error-box">{{ error }}</div>
+            {% endif %}
+
+            <div class="form-group">
+                <label for="book_name">Book title</label>
+                <input type="text" id="book_name" name="book_name" placeholder="e.g. The Great Gatsby" value="{{ book_name }}" required>
+            </div>
+
+            <div class="form-group">
+                <label for="author_name">Author</label>
+                <input type="text" id="author_name" name="author_name" placeholder="e.g. F. Scott Fitzgerald" value="{{ author_name }}" required>
+            </div>
+
+            <div class="form-group">
+                <label>What would you like?</label>
+                <input type="hidden" name="action" id="actionInput" value="{{ selected_action }}">
+                <div class="action-chips">
+                    <div class="action-chip {% if selected_action == 'summary' %}selected{% endif %}" data-value="summary">Summary</div>
+                    <div class="action-chip {% if selected_action == 'key_points' %}selected{% endif %}" data-value="key_points">Key Points</div>
+                    <div class="action-chip {% if selected_action == 'main_plot' %}selected{% endif %}" data-value="main_plot">Main Plot</div>
+                    <div class="action-chip {% if selected_action == 'alternate_ending' %}selected{% endif %}" data-value="alternate_ending">Alternate Ending</div>
+                    <div class="action-chip {% if selected_action == 'suggestions' %}selected{% endif %}" data-value="suggestions">Similar Books</div>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary" id="submitBtn">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                Explore this book
+            </button>
         </form>
 
-        <button type="button" class="secondary-btn" id="newBookBtn">New Book</button>
-
         {% if result %}
-        <div id="result">
-            <h2>{{ book_name }} by {{ author_name }}</h2>
-            <p style="white-space: pre-line;">{{ result }}</p>
-        </div>
+        <button type="button" class="btn btn-secondary" id="newBookBtn">Start over</button>
         {% endif %}
     </div>
 
+    {% if result %}
+    <div class="result-card">
+        <div class="result-header">
+            <h2>{{ book_name }}</h2>
+        </div>
+        <div class="result-meta">by {{ author_name }}</div>
+        <div class="result-body">{{ result }}</div>
+    </div>
+    {% endif %}
+
+    <div class="footer">
+        Powered by Claude &middot; Built with Flask
+    </div>
+
     <script>
-        document.getElementById('newBookBtn').onclick = function() {
-            document.querySelector('form').reset();
-            const resultDiv = document.getElementById('result');
-            if (resultDiv) {
-                resultDiv.style.display = 'none';
-            }
-        };
+        // Action chip selection
+        document.querySelectorAll('.action-chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                document.querySelectorAll('.action-chip').forEach(c => c.classList.remove('selected'));
+                chip.classList.add('selected');
+                document.getElementById('actionInput').value = chip.dataset.value;
+            });
+        });
+
+        // Loading state on form submit
+        document.getElementById('bookForm').addEventListener('submit', function() {
+            document.getElementById('loadingOverlay').classList.add('active');
+            document.getElementById('submitBtn').disabled = true;
+        });
+
+        // New book / start over
+        const newBtn = document.getElementById('newBookBtn');
+        if (newBtn) {
+            newBtn.addEventListener('click', () => {
+                window.location.href = '/';
+            });
+        }
     </script>
 
 </body>
