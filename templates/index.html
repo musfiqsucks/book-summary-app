@@ -322,11 +322,25 @@
             </div>
 
             <div class="form-group">
+                <label for="book_description">Forgot the title or author? Describe the book & characters <span style="color: var(--text-secondary); font-weight: 400;">(optional)</span></label>
+                <textarea id="book_description" placeholder="e.g. A dystopian novel about a man who starts questioning a society where books are burned by firemen..." style="width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:10px;font-size:0.95rem;font-family:'Inter',sans-serif;background:var(--input-bg);color:var(--text);outline:none;resize:vertical;min-height:80px;transition:border-color 0.2s,box-shadow 0.2s;"></textarea>
+                <button type="button" id="findBookBtn" class="btn btn-secondary" style="margin-top:8px;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    Find the book
+                </button>
+                <div id="suggestionBox" style="display:none;margin-top:12px;padding:14px 18px;background:var(--result-bg);border:1px solid var(--border);border-radius:10px;font-size:0.9rem;">
+                    <div id="suggestionContent"></div>
+                    <button type="button" id="applySuggestionBtn" class="btn btn-primary" style="margin-top:10px;padding:10px 16px;font-size:0.85rem;">Apply suggestion</button>
+                </div>
+                <div id="suggestionError" class="error-box" style="display:none;margin-top:8px;"></div>
+            </div>
+
+            <div class="form-group">
                 <label>What would you like?</label>
                 <input type="hidden" name="action" id="actionInput" value="{{ selected_action }}">
                 <div class="action-chips">
                     <div class="action-chip {% if selected_action == 'summary' %}selected{% endif %}" data-value="summary">Summary</div>
-                    <div class="action-chip {% if selected_action == 'key_points' %}selected{% endif %}" data-value="key_points">Key Points</div>
+                    <div class="action-chip {% if selected_action == 'enrich_life_key_points' %}selected{% endif %}" data-value="enrich_life_key_points">Learn the key points to enrich your life</div>
                     <div class="action-chip {% if selected_action == 'main_plot' %}selected{% endif %}" data-value="main_plot">Main Plot</div>
                     <div class="action-chip {% if selected_action == 'alternate_ending' %}selected{% endif %}" data-value="alternate_ending">Alternate Ending</div>
                     <div class="action-chip {% if selected_action == 'suggestions' %}selected{% endif %}" data-value="suggestions">Similar Books</div>
@@ -381,6 +395,65 @@
                 window.location.href = '/';
             });
         }
+
+        // Find the book suggestion feature
+        const findBookBtn = document.getElementById('findBookBtn');
+        const suggestionBox = document.getElementById('suggestionBox');
+        const suggestionContent = document.getElementById('suggestionContent');
+        const suggestionError = document.getElementById('suggestionError');
+        const applySuggestionBtn = document.getElementById('applySuggestionBtn');
+        let lastSuggestion = null;
+
+        findBookBtn.addEventListener('click', async () => {
+            const description = document.getElementById('book_description').value.trim();
+            if (!description) {
+                suggestionError.textContent = 'Please describe the book first.';
+                suggestionError.style.display = 'block';
+                suggestionBox.style.display = 'none';
+                return;
+            }
+
+            findBookBtn.disabled = true;
+            findBookBtn.textContent = 'Searching...';
+            suggestionError.style.display = 'none';
+            suggestionBox.style.display = 'none';
+
+            try {
+                const res = await fetch('/api/suggest-book', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ description })
+                });
+                const data = await res.json();
+
+                if (data.error) {
+                    suggestionError.textContent = data.error;
+                    suggestionError.style.display = 'block';
+                } else {
+                    lastSuggestion = data;
+                    const conf = data.confidence ? ` (${data.confidence} confidence)` : '';
+                    suggestionContent.innerHTML =
+                        `<strong>${data.title}</strong> by ${data.author}${conf}` +
+                        (data.reasoning ? `<br><span style="color:var(--text-secondary)">${data.reasoning}</span>` : '');
+                    suggestionBox.style.display = 'block';
+                }
+            } catch (err) {
+                suggestionError.textContent = 'Network error. Please try again.';
+                suggestionError.style.display = 'block';
+            } finally {
+                findBookBtn.disabled = false;
+                findBookBtn.innerHTML =
+                    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> Find the book';
+            }
+        });
+
+        applySuggestionBtn.addEventListener('click', () => {
+            if (lastSuggestion) {
+                document.getElementById('book_name').value = lastSuggestion.title;
+                document.getElementById('author_name').value = lastSuggestion.author;
+                suggestionBox.style.display = 'none';
+            }
+        });
     </script>
 
 </body>
