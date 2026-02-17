@@ -24,6 +24,11 @@ ACTIONS = {
 }
 
 
+@app.route("/healthz")
+def healthz():
+    return "ok", 200
+
+
 @app.route("/", methods=["GET", "POST"])
 def home():
     result = ""
