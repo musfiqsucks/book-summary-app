@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bookish - AI Book Explorer</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         *, *::before, *::after {
             box-sizing: border-box;
@@ -475,21 +475,47 @@
         const downloadPdfBtn = document.getElementById('downloadPdfBtn');
         if (downloadPdfBtn) {
             downloadPdfBtn.addEventListener('click', () => {
-                const card = document.getElementById('resultCard');
-                // Hide the download button itself during capture
-                downloadPdfBtn.style.display = 'none';
-                const bookTitle = card.querySelector('.result-header h2').textContent;
-                const author = card.querySelector('.result-meta').textContent;
-                const opt = {
-                    margin: [12, 12, 12, 12],
-                    filename: bookTitle.replace(/[^a-zA-Z0-9]/g, '_') + '_Bookish.pdf',
-                    image: { type: 'jpeg', quality: 0.98 },
-                    html2canvas: { scale: 2, useCORS: true },
-                    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-                };
-                html2pdf().set(opt).from(card).save().then(() => {
-                    downloadPdfBtn.style.display = '';
-                });
+                const bookTitle = document.querySelector('#resultCard .result-header h2').textContent;
+                const author = document.querySelector('#resultCard .result-meta').textContent;
+                const body = document.querySelector('#resultCard .result-body').innerText;
+
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+                const pageW = doc.internal.pageSize.getWidth();
+                const pageH = doc.internal.pageSize.getHeight();
+                const margin = 20;
+                const contentW = pageW - margin * 2;
+
+                // Title
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(20);
+                doc.text(bookTitle, margin, 28);
+
+                // Author
+                doc.setFont('helvetica', 'italic');
+                doc.setFontSize(12);
+                doc.text(author, margin, 37);
+
+                // Divider line
+                doc.setDrawColor(200);
+                doc.line(margin, 41, pageW - margin, 41);
+
+                // Body text with auto page breaks
+                doc.setFont('helvetica', 'normal');
+                doc.setFontSize(11);
+                const lines = doc.splitTextToSize(body, contentW);
+                let y = 49;
+                const lineH = 5.5;
+                for (let i = 0; i < lines.length; i++) {
+                    if (y + lineH > pageH - margin) {
+                        doc.addPage();
+                        y = margin;
+                    }
+                    doc.text(lines[i], margin, y);
+                    y += lineH;
+                }
+
+                doc.save(bookTitle.replace(/[^a-zA-Z0-9]/g, '_') + '_Bookish.pdf');
             });
         }
     </script>
