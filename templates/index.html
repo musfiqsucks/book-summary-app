@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bookish - AI Book Explorer</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
         *, *::before, *::after {
             box-sizing: border-box;
@@ -147,6 +148,17 @@
 
         .btn-secondary:hover {
             background-color: var(--input-bg);
+        }
+
+        .btn-download {
+            background: transparent;
+            color: var(--accent);
+            border: 1px solid var(--accent);
+            margin-top: 16px;
+        }
+
+        .btn-download:hover {
+            background-color: var(--result-bg);
         }
 
         .result-card {
@@ -340,10 +352,10 @@
                 <input type="hidden" name="action" id="actionInput" value="{{ selected_action }}">
                 <div class="action-chips">
                     <div class="action-chip {% if selected_action == 'summary' %}selected{% endif %}" data-value="summary">Summary</div>
-                    <div class="action-chip {% if selected_action == 'enrich_life_key_points' %}selected{% endif %}" data-value="enrich_life_key_points">Learn the key points to enrich your life</div>
+                    <div class="action-chip {% if selected_action == 'suggestions' %}selected{% endif %}" data-value="suggestions">Similar Books</div>
                     <div class="action-chip {% if selected_action == 'main_plot' %}selected{% endif %}" data-value="main_plot">Main Plot</div>
                     <div class="action-chip {% if selected_action == 'alternate_ending' %}selected{% endif %}" data-value="alternate_ending">Alternate Ending</div>
-                    <div class="action-chip {% if selected_action == 'suggestions' %}selected{% endif %}" data-value="suggestions">Similar Books</div>
+                    <div class="action-chip {% if selected_action == 'enrich_life_key_points' %}selected{% endif %}" data-value="enrich_life_key_points">Learn the key points to enrich your life</div>
                 </div>
             </div>
 
@@ -359,12 +371,16 @@
     </div>
 
     {% if result %}
-    <div class="result-card">
+    <div class="result-card" id="resultCard">
         <div class="result-header">
             <h2>{{ book_name }}</h2>
         </div>
         <div class="result-meta">by {{ author_name }}</div>
         <div class="result-body">{{ result }}</div>
+        <button type="button" class="btn btn-download" id="downloadPdfBtn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Download as PDF
+        </button>
     </div>
     {% endif %}
 
@@ -454,6 +470,28 @@
                 suggestionBox.style.display = 'none';
             }
         });
+
+        // PDF download
+        const downloadPdfBtn = document.getElementById('downloadPdfBtn');
+        if (downloadPdfBtn) {
+            downloadPdfBtn.addEventListener('click', () => {
+                const card = document.getElementById('resultCard');
+                // Hide the download button itself during capture
+                downloadPdfBtn.style.display = 'none';
+                const bookTitle = card.querySelector('.result-header h2').textContent;
+                const author = card.querySelector('.result-meta').textContent;
+                const opt = {
+                    margin: [12, 12, 12, 12],
+                    filename: bookTitle.replace(/[^a-zA-Z0-9]/g, '_') + '_Bookish.pdf',
+                    image: { type: 'jpeg', quality: 0.98 },
+                    html2canvas: { scale: 2, useCORS: true },
+                    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                };
+                html2pdf().set(opt).from(card).save().then(() => {
+                    downloadPdfBtn.style.display = '';
+                });
+            });
+        }
     </script>
 
 </body>
