@@ -22,5 +22,5 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Verify app imports
-        run: python -c "import app"
+      - name: Build Docker image
+        run: docker build -t book-summary-app .
