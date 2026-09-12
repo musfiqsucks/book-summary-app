@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bookish - AI Book Explorer</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         *, *::before, *::after {
             box-sizing: border-box;
@@ -296,11 +295,152 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
+        /* --- Book finder / upload --- */
+        .toggle-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            cursor: pointer;
+            font-weight: 400;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 0;
+        }
+
+        .toggle-row input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            margin-top: 2px;
+            accent-color: var(--accent);
+            flex-shrink: 0;
+            cursor: pointer;
+        }
+
+        .sub-panel {
+            margin-top: 14px;
+            padding: 16px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: var(--input-bg);
+            animation: fadeIn 0.22s ease-out;
+        }
+
+        .sub-panel label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 500;
+            margin-bottom: 6px;
+            color: var(--text);
+        }
+
+        .sub-panel textarea {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            font-size: 0.95rem;
+            font-family: 'Inter', sans-serif;
+            background: var(--surface);
+            color: var(--text);
+            outline: none;
+            resize: vertical;
+            min-height: 80px;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .sub-panel textarea:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(217, 119, 87, 0.12);
+        }
+
+        .match-list { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
+
+        .match {
+            text-align: left;
+            width: 100%;
+            padding: 12px 14px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: var(--surface);
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 0.9rem;
+            color: var(--text);
+            transition: border-color 0.15s, background 0.15s, transform 0.1s;
+        }
+
+        .match:hover { border-color: var(--accent); background: var(--result-bg); }
+        .match:active { transform: scale(0.995); }
+        .match.selected { border-color: var(--accent); background: var(--result-bg); }
+        .match strong { font-weight: 600; }
+        .match .match-why { display: block; margin-top: 3px; color: var(--text-secondary); font-size: 0.83rem; }
+
+        .conf {
+            display: inline-block;
+            margin-left: 8px;
+            padding: 1px 7px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 500;
+            vertical-align: middle;
+        }
+        .conf-high { background: #E7F4EC; color: #1F7A45; }
+        .conf-medium { background: #FDF3E3; color: #9A6512; }
+        .conf-low { background: #F1F0EE; color: var(--text-secondary); }
+
+        .upload-block { margin-top: 16px; padding-top: 14px; border-top: 1px dashed var(--border); }
+        .upload-hint { font-size: 0.83rem; color: var(--text-secondary); margin-bottom: 8px; }
+        .sub-panel input[type="file"] { font-size: 0.85rem; color: var(--text-secondary); width: 100%; }
+        .sub-panel input[type="file"]::file-selector-button {
+            font-family: inherit; font-size: 0.83rem; padding: 8px 14px; margin-right: 10px;
+            border: 1px solid var(--border); border-radius: 8px; background: var(--surface);
+            color: var(--text); cursor: pointer;
+        }
+        .sub-panel input[type="file"]::file-selector-button:hover { border-color: var(--accent); }
+        .file-info { margin-top: 8px; font-size: 0.83rem; color: var(--accent); font-weight: 500; }
+
+        .result-badge {
+            display: inline-block; padding: 3px 10px; border-radius: 20px;
+            background: var(--result-bg); border: 1px solid var(--border);
+            font-size: 0.72rem; color: var(--text-secondary); font-weight: 500;
+        }
+
+        /* --- Email modal --- */
+        .modal-backdrop {
+            position: fixed; inset: 0; background: rgba(45, 43, 40, 0.45);
+            display: flex; align-items: center; justify-content: center;
+            padding: 20px; z-index: 1000;
+        }
+        .modal-backdrop[hidden] { display: none; }
+
+        .modal {
+            background: var(--surface); border-radius: 14px; padding: 28px;
+            width: 100%; max-width: 420px; box-shadow: 0 18px 50px rgba(0,0,0,0.18);
+            animation: fadeIn 0.2s ease-out;
+        }
+        .modal h3 { font-family: 'Libre Baskerville', Georgia, serif; font-size: 1.15rem; margin-bottom: 4px; }
+        .modal-sub { font-size: 0.88rem; color: var(--text-secondary); margin-bottom: 16px; }
+        .modal input[type="email"] {
+            width: 100%; padding: 12px 14px; border: 1px solid var(--border);
+            border-radius: 10px; font-size: 0.95rem; font-family: inherit;
+            background: var(--input-bg); color: var(--text); outline: none; margin-bottom: 12px;
+        }
+        .modal input[type="email"]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(217,119,87,0.12); }
+        .modal-actions { display: flex; gap: 10px; margin-top: 18px; }
+        .modal-actions .btn { flex: 1; margin: 0; }
+
+        .sr-only {
+            position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+            overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+        }
+
         @media (max-width: 480px) {
             body { padding: 24px 16px; }
             .header h1 { font-size: 1.6rem; }
             .card, .result-card { padding: 24px; }
             .action-chips { grid-template-columns: 1fr; }
+            .modal { padding: 22px; }
+            .modal-actions { flex-direction: column-reverse; }
         }
     </style>
 </head>
@@ -317,11 +457,9 @@
     </div>
 
     <div class="card">
-        <form method="POST" id="bookForm">
+        <form method="POST" id="bookForm" enctype="multipart/form-data">
 
-            {% if error %}
-            <div class="error-box">{{ error }}</div>
-            {% endif %}
+            <div class="error-box" id="formError" {% if not error %}hidden{% endif %}>{{ error }}</div>
 
             <div class="form-group">
                 <label for="book_name">Book title</label>
@@ -334,17 +472,27 @@
             </div>
 
             <div class="form-group">
-                <label for="book_description">Forgot the title or author? Describe the book & characters <span style="color: var(--text-secondary); font-weight: 400;">(optional)</span></label>
-                <textarea id="book_description" placeholder="e.g. A dystopian novel about a man who starts questioning a society where books are burned by firemen..." style="width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:10px;font-size:0.95rem;font-family:'Inter',sans-serif;background:var(--input-bg);color:var(--text);outline:none;resize:vertical;min-height:80px;transition:border-color 0.2s,box-shadow 0.2s;"></textarea>
-                <button type="button" id="findBookBtn" class="btn btn-secondary" style="margin-top:8px;">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                    Find the book
-                </button>
-                <div id="suggestionBox" style="display:none;margin-top:12px;padding:14px 18px;background:var(--result-bg);border:1px solid var(--border);border-radius:10px;font-size:0.9rem;">
-                    <div id="suggestionContent"></div>
-                    <button type="button" id="applySuggestionBtn" class="btn btn-primary" style="margin-top:10px;padding:10px 16px;font-size:0.85rem;">Apply suggestion</button>
+                <label class="toggle-row" for="finderToggle">
+                    <input type="checkbox" id="finderToggle">
+                    <span>I don't know the exact title or author</span>
+                </label>
+
+                <div id="finderPanel" class="sub-panel" hidden>
+                    <label for="book_description">Describe the book &amp; characters</label>
+                    <textarea id="book_description" placeholder="e.g. A dystopian novel about a man who starts questioning a society where books are burned by firemen..."></textarea>
+                    <button type="button" id="findBookBtn" class="btn btn-secondary" style="margin-top:8px;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                        Find the book
+                    </button>
+                    <div id="matchList" class="match-list" hidden></div>
+                    <div id="suggestionError" class="error-box" style="display:none;margin-top:8px;"></div>
+
+                    <div class="upload-block">
+                        <p class="upload-hint">Still not found? Upload the book as a PDF and we'll read it directly.</p>
+                        <input type="file" id="book_file" name="book_file" accept="application/pdf,.pdf">
+                        <div id="fileInfo" class="file-info" hidden></div>
+                    </div>
                 </div>
-                <div id="suggestionError" class="error-box" style="display:none;margin-top:8px;"></div>
             </div>
 
             <div class="form-group">
@@ -361,78 +509,133 @@
 
             <button type="submit" class="btn btn-primary" id="submitBtn">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                Explore this book
+                Get your result
             </button>
         </form>
 
-        {% if result %}
-        <button type="button" class="btn btn-secondary" id="newBookBtn">Start over</button>
-        {% endif %}
+        <button type="button" class="btn btn-secondary" id="newBookBtn" {% if not result %}hidden{% endif %}>Start over</button>
     </div>
 
-    {% if result %}
-    <div class="result-card" id="resultCard">
+    <div class="result-card" id="resultCard" {% if not result %}hidden{% endif %}>
         <div class="result-header">
-            <h2>{{ book_name }}</h2>
+            <h2 id="resultTitle">{{ book_name }}</h2>
+            <span class="result-badge" id="resultBadge"></span>
         </div>
-        <div class="result-meta">by {{ author_name }}</div>
-        <div class="result-body">{{ result }}</div>
+        <div class="result-meta" id="resultMeta">by {{ author_name }}</div>
+        <div class="result-body" id="resultBody">{{ result }}</div>
         <button type="button" class="btn btn-download" id="downloadPdfBtn">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
             Download as PDF
         </button>
     </div>
-    {% endif %}
+
+    <div class="modal-backdrop" id="emailModal" hidden>
+        <div class="modal">
+            <h3>Where should we send it?</h3>
+            <p class="modal-sub">Enter your email to download the PDF.</p>
+            <label for="emailInput" class="sr-only">Email address</label>
+            <input type="email" id="emailInput" placeholder="you@example.com" autocomplete="email">
+            <label class="toggle-row" for="consentInput">
+                <input type="checkbox" id="consentInput">
+                <span>I agree to receive this PDF and occasional updates by email.</span>
+            </label>
+            <div class="error-box" id="emailError" hidden></div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" id="emailCancel">Cancel</button>
+                <button type="button" class="btn btn-primary" id="emailSubmit">Get the PDF</button>
+            </div>
+        </div>
+    </div>
 
     <div class="footer">
         © 2026 All Rights Reserved. &middot; Developed by Mus
     </div>
 
     <script>
-        // Action chip selection
+        const $ = (id) => document.getElementById(id);
+
+        const form = $('bookForm');
+        const bookName = $('book_name');
+        const authorName = $('author_name');
+        const finderToggle = $('finderToggle');
+        const finderPanel = $('finderPanel');
+        const fileInput = $('book_file');
+        const fileInfo = $('fileInfo');
+        const formError = $('formError');
+        const resultCard = $('resultCard');
+        const submitBtn = $('submitBtn');
+        const newBookBtn = $('newBookBtn');
+        const MAX_UPLOAD_MB = {{ max_upload_mb }};
+
+        function showError(msg) {
+            formError.textContent = msg;
+            formError.hidden = !msg;
+        }
+
+        // --- Action chips ---
         document.querySelectorAll('.action-chip').forEach(chip => {
             chip.addEventListener('click', () => {
                 document.querySelectorAll('.action-chip').forEach(c => c.classList.remove('selected'));
                 chip.classList.add('selected');
-                document.getElementById('actionInput').value = chip.dataset.value;
+                $('actionInput').value = chip.dataset.value;
             });
         });
 
-        // Loading state on form submit
-        document.getElementById('bookForm').addEventListener('submit', function() {
-            document.getElementById('loadingOverlay').classList.add('active');
-            document.getElementById('submitBtn').disabled = true;
-        });
+        // --- Finder panel visibility ---
+        // Shown only when the checkbox is on AND the title/author are still empty.
+        function syncFinder() {
+            const hasBook = bookName.value.trim() !== '' && authorName.value.trim() !== '';
+            const show = finderToggle.checked && !hasBook;
+            finderPanel.hidden = !show;
 
-        // New book / start over
-        const newBtn = document.getElementById('newBookBtn');
-        if (newBtn) {
-            newBtn.addEventListener('click', () => {
-                window.location.href = '/';
-            });
+            // With an upload or finder mode active, title/author are no longer required.
+            const relaxed = finderToggle.checked || (fileInput && fileInput.files.length > 0);
+            bookName.required = !relaxed;
+            authorName.required = !relaxed;
         }
 
-        // Find the book suggestion feature
-        const findBookBtn = document.getElementById('findBookBtn');
-        const suggestionBox = document.getElementById('suggestionBox');
-        const suggestionContent = document.getElementById('suggestionContent');
-        const suggestionError = document.getElementById('suggestionError');
-        const applySuggestionBtn = document.getElementById('applySuggestionBtn');
-        let lastSuggestion = null;
+        finderToggle.addEventListener('change', syncFinder);
+        bookName.addEventListener('input', syncFinder);
+        authorName.addEventListener('input', syncFinder);
+        syncFinder();
+
+        // --- File selection ---
+        fileInput.addEventListener('change', () => {
+            const f = fileInput.files[0];
+            if (!f) { fileInfo.hidden = true; syncFinder(); return; }
+
+            const mb = f.size / (1024 * 1024);
+            if (mb > MAX_UPLOAD_MB) {
+                showError('That file is ' + mb.toFixed(1) + ' MB. The maximum is ' + MAX_UPLOAD_MB + ' MB.');
+                fileInput.value = '';
+                fileInfo.hidden = true;
+            } else {
+                showError('');
+                fileInfo.textContent = f.name + ' (' + mb.toFixed(1) + ' MB) - we will read this directly.';
+                fileInfo.hidden = false;
+            }
+            syncFinder();
+        });
+
+        // --- Book finder ---
+        const findBookBtn = $('findBookBtn');
+        const matchList = $('matchList');
+        const suggestionError = $('suggestionError');
+        const FIND_LABEL = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> Find the book';
 
         findBookBtn.addEventListener('click', async () => {
-            const description = document.getElementById('book_description').value.trim();
+            const description = $('book_description').value.trim();
             if (!description) {
                 suggestionError.textContent = 'Please describe the book first.';
                 suggestionError.style.display = 'block';
-                suggestionBox.style.display = 'none';
+                matchList.hidden = true;
                 return;
             }
 
             findBookBtn.disabled = true;
             findBookBtn.textContent = 'Searching...';
             suggestionError.style.display = 'none';
-            suggestionBox.style.display = 'none';
+            matchList.hidden = true;
 
             try {
                 const res = await fetch('/api/suggest-book', {
@@ -446,76 +649,220 @@
                     suggestionError.textContent = data.error;
                     suggestionError.style.display = 'block';
                 } else {
-                    lastSuggestion = data;
-                    const conf = data.confidence ? ` (${data.confidence} confidence)` : '';
-                    suggestionContent.innerHTML =
-                        `<strong>${data.title}</strong> by ${data.author}${conf}` +
-                        (data.reasoning ? `<br><span style="color:var(--text-secondary)">${data.reasoning}</span>` : '');
-                    suggestionBox.style.display = 'block';
+                    renderMatches(data.matches || []);
                 }
             } catch (err) {
                 suggestionError.textContent = 'Network error. Please try again.';
                 suggestionError.style.display = 'block';
             } finally {
                 findBookBtn.disabled = false;
-                findBookBtn.innerHTML =
-                    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> Find the book';
+                findBookBtn.innerHTML = FIND_LABEL;
             }
         });
 
-        applySuggestionBtn.addEventListener('click', () => {
-            if (lastSuggestion) {
-                document.getElementById('book_name').value = lastSuggestion.title;
-                document.getElementById('author_name').value = lastSuggestion.author;
-                suggestionBox.style.display = 'none';
+        function renderMatches(matches) {
+            matchList.innerHTML = '';
+            if (!matches.length) {
+                suggestionError.textContent = 'No close matches found. Try adding more details.';
+                suggestionError.style.display = 'block';
+                return;
             }
-        });
 
-        // PDF download
-        const downloadPdfBtn = document.getElementById('downloadPdfBtn');
-        if (downloadPdfBtn) {
-            downloadPdfBtn.addEventListener('click', () => {
-                const bookTitle = document.querySelector('#resultCard .result-header h2').textContent;
-                const author = document.querySelector('#resultCard .result-meta').textContent;
-                const body = document.querySelector('#resultCard .result-body').innerText;
+            matches.forEach(m => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'match';
 
-                const { jsPDF } = window.jspdf;
-                const doc = new jsPDF({ unit: 'mm', format: 'a4' });
-                const pageW = doc.internal.pageSize.getWidth();
-                const pageH = doc.internal.pageSize.getHeight();
-                const margin = 20;
-                const contentW = pageW - margin * 2;
+                const conf = (m.confidence || '').toLowerCase();
+                const title = document.createElement('strong');
+                title.textContent = m.title || 'Untitled';
+                btn.appendChild(title);
 
-                // Title
-                doc.setFont('helvetica', 'bold');
-                doc.setFontSize(20);
-                doc.text(bookTitle, margin, 28);
+                btn.appendChild(document.createTextNode(
+                    ' by ' + (m.author || 'Unknown') + (m.year ? ' (' + m.year + ')' : '')
+                ));
 
-                // Author
-                doc.setFont('helvetica', 'italic');
-                doc.setFontSize(12);
-                doc.text(author, margin, 37);
-
-                // Divider line
-                doc.setDrawColor(200);
-                doc.line(margin, 41, pageW - margin, 41);
-
-                // Body text with auto page breaks
-                doc.setFont('helvetica', 'normal');
-                doc.setFontSize(11);
-                const lines = doc.splitTextToSize(body, contentW);
-                let y = 49;
-                const lineH = 5.5;
-                for (let i = 0; i < lines.length; i++) {
-                    if (y + lineH > pageH - margin) {
-                        doc.addPage();
-                        y = margin;
-                    }
-                    doc.text(lines[i], margin, y);
-                    y += lineH;
+                if (conf) {
+                    const badge = document.createElement('span');
+                    badge.className = 'conf conf-' + (['high','medium','low'].includes(conf) ? conf : 'low');
+                    badge.textContent = conf;
+                    btn.appendChild(badge);
                 }
 
-                doc.save(bookTitle.replace(/[^a-zA-Z0-9]/g, '_') + '_Bookish.pdf');
+                if (m.reasoning) {
+                    const why = document.createElement('span');
+                    why.className = 'match-why';
+                    why.textContent = m.reasoning;
+                    btn.appendChild(why);
+                }
+
+                btn.addEventListener('click', () => {
+                    bookName.value = m.title || '';
+                    authorName.value = m.author || '';
+                    matchList.querySelectorAll('.match').forEach(x => x.classList.remove('selected'));
+                    btn.classList.add('selected');
+                    syncFinder();
+                    bookName.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                });
+
+                matchList.appendChild(btn);
+            });
+
+            matchList.hidden = false;
+        }
+
+        // --- Submit via fetch so the page never reloads or jumps to the top ---
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            showError('');
+
+            const hasFile = fileInput.files.length > 0;
+            if (!hasFile && (!bookName.value.trim() || !authorName.value.trim())) {
+                showError('Please enter both a book name and author name, or upload the book as a PDF.');
+                return;
+            }
+
+            $('loadingOverlay').classList.add('active');
+            submitBtn.disabled = true;
+
+            try {
+                const res = await fetch('/', {
+                    method: 'POST',
+                    headers: { 'X-Requested-With': 'fetch' },
+                    body: new FormData(form)
+                });
+                const data = await res.json();
+
+                if (data.error) {
+                    showError(data.error);
+                    resultCard.hidden = true;
+                } else {
+                    renderResult(data);
+                }
+            } catch (err) {
+                showError('Network error. Please try again.');
+            } finally {
+                $('loadingOverlay').classList.remove('active');
+                submitBtn.disabled = false;
+            }
+        });
+
+        function renderResult(data) {
+            $('resultTitle').textContent = data.book_name;
+            $('resultMeta').textContent = 'by ' + data.author_name;
+            $('resultBadge').textContent = data.action_label || '';
+            $('resultBody').textContent = data.result;
+            resultCard.hidden = false;
+            newBookBtn.hidden = false;
+            // Bring the reader to the result instead of leaving them at the top.
+            requestAnimationFrame(() => {
+                resultCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            });
+        }
+
+        // --- Start over ---
+        newBookBtn.addEventListener('click', () => {
+            form.reset();
+            fileInfo.hidden = true;
+            matchList.hidden = true;
+            resultCard.hidden = true;
+            newBookBtn.hidden = true;
+            showError('');
+            syncFinder();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+
+        // --- Email-gated PDF download ---
+        const emailModal = $('emailModal');
+        const emailInput = $('emailInput');
+        const consentInput = $('consentInput');
+        const emailError = $('emailError');
+        const emailSubmit = $('emailSubmit');
+
+        $('downloadPdfBtn').addEventListener('click', () => {
+            emailError.hidden = true;
+            try {
+                const saved = localStorage.getItem('bookish_email');
+                if (saved) { emailInput.value = saved; consentInput.checked = true; }
+            } catch (e) { /* private mode - ignore */ }
+            emailModal.hidden = false;
+            emailInput.focus();
+        });
+
+        $('emailCancel').addEventListener('click', () => { emailModal.hidden = true; });
+        emailModal.addEventListener('click', (e) => {
+            if (e.target === emailModal) emailModal.hidden = true;
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && !emailModal.hidden) emailModal.hidden = true;
+        });
+        emailInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') emailSubmit.click();
+        });
+
+        emailSubmit.addEventListener('click', async () => {
+            const email = emailInput.value.trim();
+            if (!/^[^@\s]+@[^@\s]+\.[a-zA-Z]{2,}$/.test(email)) {
+                emailError.textContent = 'Please enter a valid email address.';
+                emailError.hidden = false;
+                return;
+            }
+            if (!consentInput.checked) {
+                emailError.textContent = 'Please tick the box to continue.';
+                emailError.hidden = false;
+                return;
+            }
+
+            emailError.hidden = true;
+            emailSubmit.disabled = true;
+            emailSubmit.textContent = 'Preparing...';
+
+            try {
+                const res = await fetch('/api/download-pdf', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: email,
+                        consent: consentInput.checked,
+                        title: $('resultTitle').textContent,
+                        author: $('resultMeta').textContent.replace(/^by\s+/, ''),
+                        action: $('actionInput').value,
+                        body: $('resultBody').textContent
+                    })
+                });
+
+                if (!res.ok) {
+                    const err = await res.json().catch(() => ({}));
+                    emailError.textContent = err.error || 'Could not generate the PDF.';
+                    emailError.hidden = false;
+                    return;
+                }
+
+                const blob = await res.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = ($('resultTitle').textContent || 'bookish').replace(/[^a-zA-Z0-9]+/g, '_') + '_Bookish.pdf';
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                URL.revokeObjectURL(url);
+
+                try { localStorage.setItem('bookish_email', email); } catch (e) { /* ignore */ }
+                emailModal.hidden = true;
+            } catch (err) {
+                emailError.textContent = 'Network error. Please try again.';
+                emailError.hidden = false;
+            } finally {
+                emailSubmit.disabled = false;
+                emailSubmit.textContent = 'Get the PDF';
+            }
+        });
+
+        // If the server rendered a result (no-JS fallback path), scroll to it.
+        if (!resultCard.hidden) {
+            window.addEventListener('load', () => {
+                resultCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
             });
         }
     </script>

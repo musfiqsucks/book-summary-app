@@ -1,4 +1,7 @@
 Flask==3.1.0
 anthropic>=0.79.0,<1.0.0
 python-dotenv==1.0.1
+pypdf==5.1.0
+reportlab==4.2.5
+psycopg[binary]==3.2.3
 gunicorn==21.2.0
