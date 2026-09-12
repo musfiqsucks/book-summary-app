@@ -14,6 +14,15 @@
             padding: 0;
         }
 
+        html, body {
+            max-width: 100%;
+            overflow-x: hidden;   /* no sideways drift on small screens */
+        }
+
+        img, svg, textarea, input, pre { max-width: 100%; }
+        .result-body { overflow-wrap: anywhere; }
+        .result-body pre { overflow-x: auto; }
+
         :root {
             /* Candlelight on a dark study: ink, parchment, old gold. */
             --bg: #0E0C0A;
@@ -36,10 +45,8 @@
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             background-color: var(--bg);
-            background-image:
-                radial-gradient(ellipse 120% 55% at 50% -10%, rgba(201, 169, 97, 0.10), transparent 70%),
-                radial-gradient(ellipse 80% 50% at 50% 105%, rgba(201, 169, 97, 0.04), transparent 70%);
-            background-attachment: fixed;
+            position: relative;
+            overflow-x: hidden;
             color: var(--text);
             min-height: 100vh;
             display: flex;
@@ -48,6 +55,107 @@
             padding: 40px 20px;
             line-height: 1.6;
         }
+
+        /* --- The room: a dark library lit by one lantern --- */
+        .ambience {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        /* The pool of light the lantern throws, breathing as the flame moves. */
+        .ambience .glow {
+            position: absolute;
+            left: 50%;
+            top: -18vh;
+            width: min(1100px, 150vw);
+            height: min(1100px, 150vw);
+            transform: translateX(-50%);
+            background: radial-gradient(circle at 50% 50%,
+                        rgba(224, 194, 134, 0.13) 0%,
+                        rgba(201, 169, 97, 0.07) 28%,
+                        rgba(201, 169, 97, 0.025) 48%,
+                        transparent 68%);
+            animation: breathe 7s ease-in-out infinite;
+        }
+
+        /* A second, slower pool so the light never pulses mechanically. */
+        .ambience .glow.secondary {
+            top: auto;
+            bottom: -30vh;
+            width: min(760px, 120vw);
+            height: min(760px, 120vw);
+            opacity: 0.55;
+            animation: breathe 11s ease-in-out infinite reverse;
+        }
+
+        /* Soot darkening at the edges, like an old room. */
+        .ambience .vignette {
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(ellipse 90% 75% at 50% 40%,
+                        transparent 40%, rgba(0, 0, 0, 0.45) 100%);
+        }
+
+        @keyframes breathe {
+            0%, 100% { opacity: 1;    transform: translateX(-50%) scale(1); }
+            30%      { opacity: 0.86; transform: translateX(-50%) scale(1.05); }
+            55%      { opacity: 1.05; transform: translateX(-50%) scale(0.98); }
+            78%      { opacity: 0.9;  transform: translateX(-50%) scale(1.03); }
+        }
+
+        /* --- The lantern itself --- */
+        .lantern {
+            position: relative;
+            width: 34px;
+            height: 46px;
+            margin: 0 auto 18px;
+        }
+
+        .lantern .halo {
+            position: absolute;
+            left: 50%;
+            top: 46%;
+            width: 130px;
+            height: 130px;
+            transform: translate(-50%, -50%);
+            border-radius: 50%;
+            background: radial-gradient(circle,
+                        rgba(224, 194, 134, 0.3) 0%,
+                        rgba(201, 169, 97, 0.1) 35%,
+                        transparent 68%);
+            animation: flicker 3.6s ease-in-out infinite;
+        }
+
+        .lantern svg { position: relative; z-index: 1; display: block; }
+
+        .lantern .flame {
+            transform-origin: 50% 100%;
+            animation: dance 2.4s ease-in-out infinite;
+        }
+
+        @keyframes flicker {
+            0%, 100% { opacity: 0.95; transform: translate(-50%, -50%) scale(1); }
+            25%      { opacity: 0.7;  transform: translate(-50%, -50%) scale(0.94); }
+            45%      { opacity: 1;    transform: translate(-50%, -50%) scale(1.06); }
+            70%      { opacity: 0.8;  transform: translate(-50%, -50%) scale(0.97); }
+        }
+
+        @keyframes dance {
+            0%, 100% { transform: scaleY(1)    skewX(0deg);   opacity: 1; }
+            25%      { transform: scaleY(0.92) skewX(-3deg);  opacity: 0.88; }
+            50%      { transform: scaleY(1.06) skewX(2deg);   opacity: 1; }
+            75%      { transform: scaleY(0.96) skewX(-1.5deg); opacity: 0.93; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .ambience .glow, .lantern .halo, .lantern .flame { animation: none; }
+        }
+
+        /* Content sits above the room. */
+        .header, .card, .result-card, .footer, .modal-backdrop { position: relative; z-index: 1; }
 
         .header {
             text-align: center;
@@ -547,6 +655,52 @@
             letter-spacing: 0.11em; text-transform: uppercase; white-space: nowrap;
         }
 
+        /* --- Language picker --- */
+        .lang-picker {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .lang-opt {
+            flex: 1 1 0;
+            min-width: 96px;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: var(--input-bg);
+            color: var(--text-secondary);
+            font-family: inherit;
+            font-size: 0.85rem;
+            cursor: pointer;
+            text-align: center;
+            transition: border-color 0.15s, background 0.15s, color 0.15s;
+        }
+
+        .lang-opt:hover { border-color: var(--accent); color: var(--text); }
+
+        .lang-opt.selected {
+            border-color: var(--accent);
+            background: var(--accent-dim);
+            color: var(--accent);
+            font-weight: 600;
+            box-shadow: 0 0 0 1px rgba(201, 169, 97, 0.25);
+        }
+
+        .lang-opt .native {
+            display: block;
+            font-size: 0.74rem;
+            opacity: 0.75;
+            margin-top: 2px;
+            font-weight: 400;
+        }
+
+        /* Bangla results want a touch more line height to breathe. */
+        .result-body.lang-bn, .result-body.lang-both {
+            font-family: 'Libre Baskerville', 'Noto Serif Bengali', Georgia, serif;
+            line-height: 2.15;
+        }
+
         /* --- Email modal --- */
         .modal-backdrop {
             position: fixed; inset: 0; background: rgba(6, 5, 4, 0.72);
@@ -593,7 +747,31 @@
         <div class="loading-text">Consulting the text...</div>
     </div>
 
+    <div class="ambience" aria-hidden="true">
+        <div class="glow"></div>
+        <div class="glow secondary"></div>
+        <div class="vignette"></div>
+    </div>
+
     <div class="header">
+        <div class="lantern" aria-hidden="true">
+            <div class="halo"></div>
+            <svg width="34" height="46" viewBox="0 0 34 46" fill="none">
+                <path d="M17 2v4" stroke="#8B7A52" stroke-width="1.4" stroke-linecap="round"/>
+                <path d="M10 6h14" stroke="#8B7A52" stroke-width="1.4" stroke-linecap="round"/>
+                <rect x="8" y="9" width="18" height="26" rx="3" stroke="#8B7A52" stroke-width="1.4" fill="rgba(224,194,134,0.07)"/>
+                <path d="M7 35h20" stroke="#8B7A52" stroke-width="1.4" stroke-linecap="round"/>
+                <path d="M11 38h12v3H11z" fill="#8B7A52" opacity="0.5"/>
+                <ellipse class="flame" cx="17" cy="27" rx="3.4" ry="6" fill="url(#fl)"/>
+                <defs>
+                    <radialGradient id="fl" cx="50%" cy="70%" r="60%">
+                        <stop offset="0%" stop-color="#FFF0C9"/>
+                        <stop offset="55%" stop-color="#E0C286"/>
+                        <stop offset="100%" stop-color="#C9A961" stop-opacity="0.25"/>
+                    </radialGradient>
+                </defs>
+            </svg>
+        </div>
         <h1>Bookish</h1>
         <p>What the book knows, made plain</p>
     </div>
@@ -646,6 +824,16 @@
                     <div class="action-chip {% if selected_action == 'main_plot' %}selected{% endif %}" data-value="main_plot">Main Plot</div>
                     <div class="action-chip {% if selected_action == 'alternate_ending' %}selected{% endif %}" data-value="alternate_ending">Alternate Ending</div>
                     <div class="action-chip {% if selected_action == 'enrich_life_key_points' %}selected{% endif %}" data-value="enrich_life_key_points">Learn the key points to enrich your life</div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Language of the answer</label>
+                <input type="hidden" name="language" id="languageInput" value="{{ selected_language }}">
+                <div class="lang-picker">
+                    <button type="button" class="lang-opt {% if selected_language == 'en' %}selected{% endif %}" data-value="en">English</button>
+                    <button type="button" class="lang-opt {% if selected_language == 'bn' %}selected{% endif %}" data-value="bn">Bangla<span class="native">বাংলা</span></button>
+                    <button type="button" class="lang-opt {% if selected_language == 'both' %}selected{% endif %}" data-value="both">Both<span class="native">দুটোই</span></button>
                 </div>
             </div>
 
@@ -780,9 +968,11 @@
 
         const rawResult = $('rawResult');
 
-        function paintResult(text) {
+        function paintResult(text, language) {
             rawResult.value = text;
-            $('resultBody').innerHTML = renderMarkdown(text);
+            const body = $('resultBody');
+            body.className = 'result-body' + (language && language !== 'en' ? ' lang-' + language : '');
+            body.innerHTML = renderMarkdown(text);
         }
 
         // --- Action chips ---
@@ -791,6 +981,16 @@
                 document.querySelectorAll('.action-chip').forEach(c => c.classList.remove('selected'));
                 chip.classList.add('selected');
                 $('actionInput').value = chip.dataset.value;
+            });
+        });
+
+        // --- Language picker ---
+        const languageInput = $('languageInput');
+        document.querySelectorAll('.lang-opt').forEach(opt => {
+            opt.addEventListener('click', () => {
+                document.querySelectorAll('.lang-opt').forEach(o => o.classList.remove('selected'));
+                opt.classList.add('selected');
+                languageInput.value = opt.dataset.value;
             });
         });
 
@@ -964,7 +1164,7 @@
             $('resultTitle').textContent = data.book_name;
             $('resultMeta').textContent = 'by ' + data.author_name;
             $('resultBadge').textContent = data.action_label || '';
-            paintResult(data.result);
+            paintResult(data.result, data.language);
             resultCard.hidden = false;
             newBookBtn.hidden = false;
             // Bring the reader to the result instead of leaving them at the top.
@@ -1074,7 +1274,7 @@
 
         // If the server rendered a result (no-JS fallback path), format and scroll to it.
         if (!resultCard.hidden && rawResult.value.trim()) {
-            paintResult(rawResult.value);
+            paintResult(rawResult.value, '{{ selected_language }}');
             window.addEventListener('load', () => {
                 resultCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
             });

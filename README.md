@@ -124,6 +124,21 @@ text is sent as a cached block, so running several actions against the same uplo
 within a few minutes reuses the prefix and costs much less — but the first request pays
 full price. Lower `MAX_BOOK_CHARS` if that matters more than covering long books.
 
+## Languages
+
+The form has a language picker: **English** (default), **বাংলা**, or **Both** (the full
+answer in English, a `===` rule, then the complete Bangla translation).
+
+Bangla PDFs need real text shaping — Bengali forms conjuncts and moves some vowel signs
+in front of their consonant. PDFs are therefore generated with **fpdf2 + uharfbuzz**,
+with Noto Serif for Latin and Noto Serif Bengali as a per-glyph fallback (both bundled
+under `static/fonts/`, SIL Open Font License). ReportLab cannot do this: it writes one
+glyph per codepoint with no shaping, which leaves Bengali malformed in any viewer that
+does not silently compensate.
+
+If `uharfbuzz` is unavailable the app still produces PDFs — it logs a warning and Latin
+output is unaffected, but Bangla loses shaping.
+
 ## Routes
 
 | Route | Purpose |

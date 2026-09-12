@@ -102,6 +102,31 @@ UPLOAD_ACTIONS = {
     "suggestions": "Name 5 books that belong beside the book above. Use a '## ' heading per book, then a short paragraph. No bullet lists, no bold labels.",
 }
 
+LANGUAGES = {
+    "en": "English",
+    "bn": "Bangla",
+    "both": "English + Bangla",
+}
+
+LANGUAGE_RULES = {
+    "en": "",
+    "bn": (
+        "\n\nWrite your entire response in Bangla (Bengali script). Keep the exact "
+        "structure requested above - the same headings, rules and quoted practices - "
+        "but every word of prose, including the headings, must be in Bangla. Use "
+        "natural literary Bangla, not a word-for-word transliteration of English. "
+        "Keep the book's title and the author's name in their original script, and "
+        "write 'Day' as 'দিন' in the closing section."
+    ),
+    "both": (
+        "\n\nProduce the response twice. First the complete response in English, "
+        "exactly as structured above. Then a line containing only ===, and then the "
+        "complete response again in natural literary Bangla (Bengali script), with "
+        "the same structure and the same number of sections. Do not summarise the "
+        "second pass - it is a full translation, not a digest."
+    ),
+}
+
 ACTION_LABELS = {
     "summary": "Summary",
     "alternate_ending": "Alternate Ending",
@@ -167,7 +192,7 @@ def read_pdf(file_storage):
     return text[:MAX_BOOK_CHARS], None
 
 
-def run_action(selected_action, book_name, author_name, book_text=None):
+def run_action(selected_action, book_name, author_name, book_text=None, language="en"):
     """Call the API for one action. Returns (result, error)."""
     if selected_action == "enrich_life_key_points":
         system_msg = (
@@ -185,6 +210,13 @@ def run_action(selected_action, book_name, author_name, book_text=None):
         )
         max_tokens = 4096
 
+    lang_rule = LANGUAGE_RULES.get(language, "")
+    if language in ("bn", "both"):
+        system_msg += (
+            " You are fluent in Bangla and write it with the same care as English."
+        )
+        max_tokens = min(int(max_tokens * 1.8), 16000)
+
     if book_text:
         system_msg += (
             " The full text of the book is provided by the user. Base your answer on that text, "
@@ -197,10 +229,10 @@ def run_action(selected_action, book_name, author_name, book_text=None):
                 "text": f"Here is the book text:\n\n{book_text}",
                 "cache_control": {"type": "ephemeral"},
             },
-            {"type": "text", "text": UPLOAD_ACTIONS[selected_action]},
+            {"type": "text", "text": UPLOAD_ACTIONS[selected_action] + lang_rule},
         ]
     else:
-        content = ACTIONS[selected_action].format(book=book_name, author=author_name)
+        content = ACTIONS[selected_action].format(book=book_name, author=author_name) + lang_rule
 
     try:
         message = get_client().messages.create(
@@ -335,95 +367,114 @@ def store_lead(email, book_title, author, action, consent):
         return False
 
 
+FONT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static", "fonts")
+
+INK = (45, 43, 40)
+GOLD = (138, 107, 40)
+MUTED = (107, 101, 96)
+RULE = (222, 216, 206)
+
+
+def _fpdf_markdown(text):
+    """fpdf2 markdown uses __x__ for italic; our text uses *x*."""
+    return re.sub(r"(?<!\*)\*([^*\n]+?)\*(?!\*)", r"__\1__", text)
+
+
 def build_pdf(title, author, action_label, body):
-    """Render the result as a PDF and return it as a BytesIO."""
-    from reportlab.lib.pagesizes import A4
-    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-    from reportlab.lib.units import mm
-    from reportlab.lib import colors
-    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, HRFlowable
+    """Render the result as a PDF and return it as a BytesIO.
 
-    buf = io.BytesIO()
-    doc = SimpleDocTemplate(
-        buf,
-        pagesize=A4,
-        leftMargin=20 * mm,
-        rightMargin=20 * mm,
-        topMargin=20 * mm,
-        bottomMargin=20 * mm,
-        title=f"{title} - {action_label}",
-        author="Bookish",
-    )
+    Uses fpdf2 with harfbuzz shaping and a Bengali fallback font, so Bangla
+    conjuncts and reordered vowel signs come out correct. ReportLab cannot do
+    this - it writes one glyph per codepoint with no shaping, which leaves
+    Bengali malformed in any viewer that does not silently compensate.
+    """
+    from fpdf import FPDF
+    from fpdf.enums import XPos, YPos
 
-    styles = getSampleStyleSheet()
-    h1 = ParagraphStyle(
-        "BookishTitle", parent=styles["Title"], fontSize=20, leading=24, alignment=0,
-        textColor=colors.HexColor("#2D2B28"), spaceAfter=2,
-    )
-    meta = ParagraphStyle(
-        "BookishMeta", parent=styles["Normal"], fontSize=9, leading=13,
-        textColor=colors.HexColor("#8A6B28"), spaceAfter=10,
-    )
-    body_style = ParagraphStyle(
-        "BookishBody", parent=styles["BodyText"], fontSize=10.5, leading=16,
-        textColor=colors.HexColor("#2D2B28"), spaceAfter=8,
-    )
+    pdf = FPDF(format="A4")
+    pdf.set_margins(20, 20, 20)
+    pdf.set_auto_page_break(True, margin=20)
+    pdf.add_page()
 
-    teach = ParagraphStyle(
-        "BookishTeaching", parent=styles["Normal"], fontName="Times-Bold", fontSize=13,
-        leading=17, textColor=colors.HexColor("#8A6B28"), spaceBefore=14, spaceAfter=6,
-    )
-    practice = ParagraphStyle(
-        "BookishPractice", parent=styles["Normal"], fontName="Times-Italic", fontSize=10.5,
-        leading=15, textColor=colors.HexColor("#6B6560"), leftIndent=12,
-        borderPadding=0, spaceBefore=4, spaceAfter=10,
-    )
+    pdf.add_font("Serif", "", os.path.join(FONT_DIR, "NotoSerif-Regular.ttf"))
+    pdf.add_font("Serif", "B", os.path.join(FONT_DIR, "NotoSerif-Bold.ttf"))
+    pdf.add_font("Serif", "I", os.path.join(FONT_DIR, "NotoSerif-Italic.ttf"))
+    pdf.add_font("Bengali", "", os.path.join(FONT_DIR, "NotoSerifBengali-Regular.ttf"))
+    pdf.add_font("Bengali", "B", os.path.join(FONT_DIR, "NotoSerifBengali-Bold.ttf"))
+    # Bengali has no italic tradition and the face ships none. Without these the
+    # fallback silently drops every glyph inside an italic run.
+    pdf.add_font("Bengali", "I", os.path.join(FONT_DIR, "NotoSerifBengali-Regular.ttf"))
+    pdf.add_font("Bengali", "BI", os.path.join(FONT_DIR, "NotoSerifBengali-Bold.ttf"))
+    pdf.set_fallback_fonts(["Bengali"])
 
-    story = [
-        Paragraph(escape_pdf(title), h1),
-        Paragraph(escape_pdf(f"by {author}  -  {action_label}"), meta),
-        HRFlowable(width="100%", thickness=0.6, color=colors.HexColor("#E8E4DF")),
-        Spacer(1, 8),
-    ]
+    try:
+        pdf.set_text_shaping(True)
+    except Exception as e:
+        # Without uharfbuzz the Latin text is still fine; Bangla loses shaping.
+        app.logger.warning("Text shaping unavailable, Bangla may render wrong: %s", e)
+
+    width = pdf.w - pdf.l_margin - pdf.r_margin
+
+    pdf.set_font("Serif", "B", 20)
+    pdf.set_text_color(*INK)
+    pdf.multi_cell(width, 9, title, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+
+    pdf.set_font("Serif", "", 9)
+    pdf.set_text_color(*GOLD)
+    pdf.multi_cell(width, 6, f"by {author}  ·  {action_label}",
+                   new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+
+    pdf.ln(2)
+    pdf.set_draw_color(*RULE)
+    pdf.set_line_width(0.3)
+    pdf.line(pdf.l_margin, pdf.get_y(), pdf.w - pdf.r_margin, pdf.get_y())
+    pdf.ln(5)
 
     for raw in body.split("\n"):
         line = raw.strip()
+
         if not line:
-            story.append(Spacer(1, 5))
+            pdf.ln(2.5)
             continue
 
-        if line in ("---", "***", "___"):
-            story.append(Spacer(1, 4))
-            story.append(HRFlowable(width="34%", thickness=0.6,
-                                    color=colors.HexColor("#E8E4DF"), hAlign="CENTER"))
-            story.append(Spacer(1, 4))
+        # Divider between teachings
+        if line in ("---", "***", "___", "==="):
+            pdf.ln(3)
+            y = pdf.get_y()
+            mid = pdf.w / 2
+            pdf.set_draw_color(*RULE)
+            pdf.line(mid - 18, y, mid + 18, y)
+            pdf.ln(5)
             continue
 
+        # The maxim
         if line.startswith("#"):
-            story.append(Paragraph(markdown_inline(escape_pdf(line.lstrip("#").strip())), teach))
+            pdf.ln(3)
+            pdf.set_font("Serif", "B", 13)
+            pdf.set_text_color(*GOLD)
+            pdf.multi_cell(width, 7, line.lstrip("#").strip(), markdown=True,
+                           new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+            pdf.ln(1.5)
             continue
 
+        # The practice
         if line.startswith(">"):
-            story.append(Paragraph(markdown_inline(escape_pdf(line.lstrip(">").strip())), practice))
+            pdf.set_font("Serif", "I", 10.5)
+            pdf.set_text_color(*MUTED)
+            pdf.set_x(pdf.l_margin + 6)
+            pdf.multi_cell(width - 6, 6.5,
+                           _fpdf_markdown(line.lstrip(">").strip()), markdown=True,
+                           new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+            pdf.set_x(pdf.l_margin)
+            pdf.ln(2)
             continue
 
-        story.append(Paragraph(markdown_inline(escape_pdf(line)), body_style))
+        pdf.set_font("Serif", "", 10.5)
+        pdf.set_text_color(*INK)
+        pdf.multi_cell(width, 6.5, _fpdf_markdown(line), markdown=True,
+                       new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
-    doc.build(story)
-    buf.seek(0)
-    return buf
-
-
-def escape_pdf(text):
-    """Escape XML special chars so reportlab's mini-markup does not choke."""
-    return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-
-
-def markdown_inline(text):
-    """Turn **bold** and *italic* into reportlab's inline markup."""
-    text = re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", text)
-    text = re.sub(r"(?<!\*)\*([^*\n]+?)\*(?!\*)", r"<i>\1</i>", text)
-    return text
+    return io.BytesIO(pdf.output())
 
 
 # --- Routes ------------------------------------------------------------------
@@ -442,7 +493,7 @@ def too_large(e):
         return jsonify({"error": msg}), 413
     return render_template("index.html", result="", error=msg, book_name="",
                            author_name="", selected_action="summary",
-                           max_upload_mb=MAX_UPLOAD_MB), 413
+                           selected_language="en", max_upload_mb=MAX_UPLOAD_MB), 413
 
 
 @app.route("/", methods=["GET", "POST"])
@@ -451,6 +502,7 @@ def home():
     book_name = ""
     author_name = ""
     selected_action = "summary"
+    language = "en"
     error = ""
 
     if request.method == "POST":
@@ -460,6 +512,10 @@ def home():
 
         if selected_action not in ACTIONS:
             selected_action = "summary"
+
+        language = request.form.get("language", "en")
+        if language not in LANGUAGES:
+            language = "en"
 
         upload = request.files.get("book_file")
         has_upload = bool(upload and upload.filename)
@@ -489,7 +545,9 @@ def home():
                     "Copy .env.example to .env and add your key."
                 )
             else:
-                result, error = run_action(selected_action, book_name, author_name, book_text)
+                result, error = run_action(
+                    selected_action, book_name, author_name, book_text, language
+                )
 
         if wants_json():
             if error:
@@ -500,6 +558,7 @@ def home():
                 "author_name": author_name,
                 "action": selected_action,
                 "action_label": ACTION_LABELS.get(selected_action, "Result"),
+                "language": language,
             })
 
     return render_template(
@@ -509,6 +568,7 @@ def home():
         book_name=book_name,
         author_name=author_name,
         selected_action=selected_action,
+        selected_language=language,
         max_upload_mb=MAX_UPLOAD_MB,
     )
 
