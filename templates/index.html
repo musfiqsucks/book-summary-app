@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23FAF9F7'/%3E%3Cpath d='M16 9.5c-2-1.6-4.4-2.2-7-2.1v13.2c2.6-.1 5 .5 7 2.1 2-1.6 4.4-2.2 7-2.1V7.4c-2.6-.1-5 .5-7 2.1z' fill='none' stroke='%232D2B28' stroke-width='1.6' stroke-linejoin='round'/%3E%3Cpath d='M16 9.5v13.2' stroke='%232D2B28' stroke-width='1.6'/%3E%3Cpath d='M16 4.2c1.5 1.4 1.5 2.8 0 4.2-1.5-1.4-1.5-2.8 0-4.2z' fill='%23D97757'/%3E%3C/svg%3E">
-    <meta name="theme-color" content="#FAF9F7">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2317140F'/%3E%3Cpath d='M16 9.5c-2-1.6-4.4-2.2-7-2.1v13.2c2.6-.1 5 .5 7 2.1 2-1.6 4.4-2.2 7-2.1V7.4c-2.6-.1-5 .5-7 2.1z' fill='none' stroke='%23C9A961' stroke-width='1.6' stroke-linejoin='round'/%3E%3Cpath d='M16 9.5v13.2' stroke='%23C9A961' stroke-width='1.6'/%3E%3Cpath d='M16 4.2c1.5 1.4 1.5 2.8 0 4.2-1.5-1.4-1.5-2.8 0-4.2z' fill='%23E0C286'/%3E%3C/svg%3E">
+    <meta name="theme-color" content="#0E0C0A">
     <title>Bookish - AI Book Explorer</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
     <style>
@@ -15,23 +15,31 @@
         }
 
         :root {
-            --bg: #FAF9F7;
-            --surface: #FFFFFF;
-            --text: #2D2B28;
-            --text-secondary: #6B6560;
-            --accent: #D97757;
-            --accent-hover: #C4623F;
-            --border: #E8E4DF;
-            --input-bg: #FAF9F7;
-            --result-bg: #FDF8F5;
-            --error-bg: #FEF2F2;
-            --error-text: #B91C1C;
-            --error-border: #FECACA;
+            /* Candlelight on a dark study: ink, parchment, old gold. */
+            --bg: #0E0C0A;
+            --surface: #17140F;
+            --text: #EDE3CF;
+            --text-secondary: #9C9078;
+            --text-faint: #6B6252;
+            --accent: #C9A961;
+            --accent-hover: #E0C286;
+            --accent-dim: rgba(201, 169, 97, 0.13);
+            --border: #2A241B;
+            --border-lit: #3D3427;
+            --input-bg: #120F0B;
+            --result-bg: #13100C;
+            --error-bg: #241413;
+            --error-text: #E0928A;
+            --error-border: #4A2723;
         }
 
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             background-color: var(--bg);
+            background-image:
+                radial-gradient(ellipse 120% 55% at 50% -10%, rgba(201, 169, 97, 0.10), transparent 70%),
+                radial-gradient(ellipse 80% 50% at 50% 105%, rgba(201, 169, 97, 0.04), transparent 70%);
+            background-attachment: fixed;
             color: var(--text);
             min-height: 100vh;
             display: flex;
@@ -51,12 +59,24 @@
             font-size: 2rem;
             font-weight: 700;
             color: var(--text);
-            margin-bottom: 8px;
+            margin-bottom: 10px;
+            letter-spacing: 0.06em;
+        }
+
+        .header h1::after {
+            content: "";
+            display: block;
+            width: 54px;
+            height: 1px;
+            margin: 14px auto 0;
+            background: linear-gradient(90deg, transparent, var(--accent), transparent);
         }
 
         .header p {
             color: var(--text-secondary);
-            font-size: 0.95rem;
+            font-size: 0.84rem;
+            letter-spacing: 0.13em;
+            text-transform: uppercase;
         }
 
         .card {
@@ -64,6 +84,7 @@
             border: 1px solid var(--border);
             border-radius: 16px;
             padding: 32px;
+            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
             width: 100%;
             max-width: 560px;
             margin-bottom: 24px;
@@ -75,11 +96,12 @@
 
         .form-group label {
             display: block;
-            font-size: 0.85rem;
+            font-size: 0.72rem;
             font-weight: 500;
-            color: var(--text-secondary);
-            margin-bottom: 6px;
-            letter-spacing: 0.02em;
+            color: var(--text-faint);
+            margin-bottom: 8px;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
         }
 
         .form-group input,
@@ -99,11 +121,11 @@
         .form-group input:focus,
         .form-group select:focus {
             border-color: var(--accent);
-            box-shadow: 0 0 0 3px rgba(217, 119, 87, 0.12);
+            box-shadow: 0 0 0 3px rgba(201, 169, 97, 0.16);
         }
 
         .form-group input::placeholder {
-            color: #B0AAA3;
+            color: var(--text-faint);
         }
 
         .btn {
@@ -128,7 +150,9 @@
 
         .btn-primary {
             background-color: var(--accent);
-            color: #FFFFFF;
+            color: #14110C;
+            font-weight: 600;
+            letter-spacing: 0.03em;
         }
 
         .btn-primary:hover {
@@ -164,12 +188,26 @@
 
         .result-card {
             background: var(--surface);
-            border: 1px solid var(--border);
+            border: 1px solid var(--border-lit);
             border-radius: 16px;
             padding: 32px;
             width: 100%;
             max-width: 560px;
-            animation: fadeIn 0.4s ease;
+            box-shadow: 0 28px 70px rgba(0, 0, 0, 0.55),
+                        0 0 0 1px rgba(201, 169, 97, 0.07),
+                        0 -1px 36px rgba(201, 169, 97, 0.07);
+            animation: reveal 0.9s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+        }
+
+        /* The disclosure: it surfaces out of the dark rather than popping in. */
+        @keyframes reveal {
+            from { opacity: 0; transform: translateY(14px); filter: blur(6px); }
+            60%  { filter: blur(0); }
+            to   { opacity: 1; transform: translateY(0); filter: blur(0); }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .result-card { animation: none; }
         }
 
         .result-card .result-header {
@@ -184,18 +222,22 @@
             font-size: 1.15rem;
             font-weight: 700;
             color: var(--text);
+            letter-spacing: 0.02em;
         }
 
         .result-card .result-meta {
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-            margin-bottom: 20px;
+            font-size: 0.72rem;
+            color: var(--text-faint);
+            margin-bottom: 22px;
+            letter-spacing: 0.13em;
+            text-transform: uppercase;
         }
 
         .result-card .result-body {
             background: var(--result-bg);
+            border: 1px solid var(--border);
             border-radius: 10px;
-            padding: 30px 28px;
+            padding: 32px 30px;
             font-family: 'Libre Baskerville', Georgia, serif;
             font-size: 0.93rem;
             line-height: 1.95;
@@ -227,16 +269,16 @@
             counter-increment: teaching;
             content: counter(teaching, upper-roman) ". ";
             color: var(--accent);
-            font-size: 0.82em;
-            letter-spacing: 0.06em;
+            font-size: 0.8em;
+            letter-spacing: 0.1em;
         }
 
         /* The single practice offered at the end of a teaching. */
         .result-body blockquote {
             margin: 0.9em 0 1.3em;
             padding: 12px 16px 12px 18px;
-            background: rgba(217, 119, 87, 0.055);
-            border-left: 2px solid rgba(217, 119, 87, 0.35);
+            background: rgba(201, 169, 97, 0.06);
+            border-left: 2px solid rgba(201, 169, 97, 0.4);
             border-radius: 0 8px 8px 0;
             font-style: italic;
             font-size: 0.89rem;
@@ -258,8 +300,9 @@
             display: inline-block;
             position: relative;
             top: -0.75em;
-            color: var(--border);
-            font-size: 0.8rem;
+            color: var(--accent);
+            opacity: 0.42;
+            font-size: 0.78rem;
             letter-spacing: 0.4em;
         }
 
@@ -282,7 +325,7 @@
             display: none;
             position: fixed;
             inset: 0;
-            background: rgba(250, 249, 247, 0.8);
+            background: rgba(14, 12, 10, 0.88);
             z-index: 100;
             justify-content: center;
             align-items: center;
@@ -344,6 +387,7 @@
         }
 
         .action-chip.selected {
+            box-shadow: 0 0 0 1px rgba(201, 169, 97, 0.28), 0 0 22px rgba(201, 169, 97, 0.1);
             border-color: var(--accent);
             background: var(--result-bg);
             color: var(--accent);
@@ -426,7 +470,7 @@
 
         .sub-panel textarea:focus {
             border-color: var(--accent);
-            box-shadow: 0 0 0 3px rgba(217, 119, 87, 0.12);
+            box-shadow: 0 0 0 3px rgba(201, 169, 97, 0.16);
         }
 
         .match-list { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
@@ -460,9 +504,9 @@
             font-weight: 500;
             vertical-align: middle;
         }
-        .conf-high { background: #E7F4EC; color: #1F7A45; }
-        .conf-medium { background: #FDF3E3; color: #9A6512; }
-        .conf-low { background: #F1F0EE; color: var(--text-secondary); }
+        .conf-high { background: rgba(122, 168, 116, 0.16); color: #93C48A; }
+        .conf-medium { background: rgba(201, 169, 97, 0.16); color: var(--accent); }
+        .conf-low { background: rgba(156, 144, 120, 0.12); color: var(--text-faint); }
 
         .upload-block { margin-top: 16px; padding-top: 14px; border-top: 1px dashed var(--border); }
         .upload-hint { font-size: 0.83rem; color: var(--text-secondary); margin-bottom: 8px; }
@@ -476,14 +520,15 @@
         .file-info { margin-top: 8px; font-size: 0.83rem; color: var(--accent); font-weight: 500; }
 
         .result-badge {
-            display: inline-block; padding: 3px 10px; border-radius: 20px;
-            background: var(--result-bg); border: 1px solid var(--border);
-            font-size: 0.72rem; color: var(--text-secondary); font-weight: 500;
+            display: inline-block; padding: 3px 11px; border-radius: 20px;
+            background: var(--accent-dim); border: 1px solid rgba(201, 169, 97, 0.25);
+            font-size: 0.63rem; color: var(--accent); font-weight: 500;
+            letter-spacing: 0.11em; text-transform: uppercase; white-space: nowrap;
         }
 
         /* --- Email modal --- */
         .modal-backdrop {
-            position: fixed; inset: 0; background: rgba(45, 43, 40, 0.45);
+            position: fixed; inset: 0; background: rgba(6, 5, 4, 0.72);
             display: flex; align-items: center; justify-content: center;
             padding: 20px; z-index: 1000;
         }
@@ -491,7 +536,7 @@
 
         .modal {
             background: var(--surface); border-radius: 14px; padding: 28px;
-            width: 100%; max-width: 420px; box-shadow: 0 18px 50px rgba(0,0,0,0.18);
+            width: 100%; max-width: 420px; box-shadow: 0 28px 70px rgba(0, 0, 0, 0.65);
             animation: fadeIn 0.2s ease-out;
         }
         .modal h3 { font-family: 'Libre Baskerville', Georgia, serif; font-size: 1.15rem; margin-bottom: 4px; }
@@ -524,12 +569,12 @@
 
     <div class="loading-overlay" id="loadingOverlay">
         <div class="spinner"></div>
-        <div class="loading-text">Reading the shelves...</div>
+        <div class="loading-text">Consulting the text...</div>
     </div>
 
     <div class="header">
         <h1>Bookish</h1>
-        <p>Explore any book with AI-powered insights</p>
+        <p>What the book knows, made plain</p>
     </div>
 
     <div class="card">

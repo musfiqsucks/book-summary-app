@@ -3,9 +3,12 @@ from dotenv import load_dotenv
 import anthropic
 import datetime
 import io
+import smtplib
+import threading
 import json
 import os
 import re
+from email.message import EmailMessage
 
 load_dotenv()
 
@@ -30,6 +33,14 @@ def _default_leads_file():
 
 LEADS_FILE = os.getenv("LEADS_FILE") or _default_leads_file()
 LEADS_TOKEN = os.getenv("LEADS_TOKEN", "")
+
+# Optional: email each captured address to yourself. Needs no database.
+SMTP_HOST = os.getenv("SMTP_HOST", "")
+SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
+SMTP_USER = os.getenv("SMTP_USER", "")
+SMTP_PASS = os.getenv("SMTP_PASS", "")
+SMTP_FROM = os.getenv("SMTP_FROM") or SMTP_USER
+LEAD_NOTIFY_EMAIL = os.getenv("LEAD_NOTIFY_EMAIL", "")
 
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[a-zA-Z]{2,}$")
 
@@ -221,6 +232,47 @@ def run_action(selected_action, book_name, author_name, book_text=None):
 # --- Email capture -----------------------------------------------------------
 
 
+def _send_lead_email(row):
+    """Post one captured lead to LEAD_NOTIFY_EMAIL. Runs off the request thread."""
+    msg = EmailMessage()
+    msg["Subject"] = f"New Bookish download: {row['email']}"
+    msg["From"] = SMTP_FROM
+    msg["To"] = LEAD_NOTIFY_EMAIL
+    msg["Reply-To"] = row["email"]
+    msg.set_content(
+        "A reader downloaded a PDF.\n\n"
+        f"Email:  {row['email']}\n"
+        f"Book:   {row['book_title']} by {row['author']}\n"
+        f"Result: {row['action']}\n"
+        f"Consent: {row['consent']}\n"
+        f"When:   {row['created_at']}\n"
+    )
+
+    try:
+        if SMTP_PORT == 465:
+            server = smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT, timeout=15)
+        else:
+            server = smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=15)
+        with server:
+            if SMTP_PORT != 465:
+                try:
+                    server.starttls()
+                except smtplib.SMTPException:
+                    pass  # plain local relay
+            if SMTP_USER:
+                server.login(SMTP_USER, SMTP_PASS)
+            server.send_message(msg)
+    except Exception as e:
+        app.logger.error("Could not email lead notification: %s", e)
+
+
+def notify_lead(row):
+    """Fire the notification in the background so the download is not delayed."""
+    if not (SMTP_HOST and LEAD_NOTIFY_EMAIL):
+        return
+    threading.Thread(target=_send_lead_email, args=(row,), daemon=True).start()
+
+
 def store_lead(email, book_title, author, action, consent):
     """Record an email before handing over a PDF.
 
@@ -263,6 +315,7 @@ def store_lead(email, book_title, author, action, consent):
                         " VALUES (%s, %s, %s, %s, %s)",
                         (email, book_title, author, action, consent),
                     )
+            notify_lead(row)
             return True
         except Exception as e:
             app.logger.error("Could not write lead to Postgres: %s", e)
@@ -275,6 +328,7 @@ def store_lead(email, book_title, author, action, consent):
             "DATABASE_URL is not set - lead written to %s, which is ephemeral on Railway.",
             LEADS_FILE,
         )
+        notify_lead(row)
         return True
     except Exception as e:
         app.logger.error("Could not write lead to %s: %s", LEADS_FILE, e)
@@ -307,8 +361,8 @@ def build_pdf(title, author, action_label, body):
         textColor=colors.HexColor("#2D2B28"), spaceAfter=2,
     )
     meta = ParagraphStyle(
-        "BookishMeta", parent=styles["Normal"], fontSize=11, leading=14,
-        textColor=colors.HexColor("#6B6560"), spaceAfter=10,
+        "BookishMeta", parent=styles["Normal"], fontSize=9, leading=13,
+        textColor=colors.HexColor("#8A6B28"), spaceAfter=10,
     )
     body_style = ParagraphStyle(
         "BookishBody", parent=styles["BodyText"], fontSize=10.5, leading=16,
@@ -317,7 +371,7 @@ def build_pdf(title, author, action_label, body):
 
     teach = ParagraphStyle(
         "BookishTeaching", parent=styles["Normal"], fontName="Times-Bold", fontSize=13,
-        leading=17, textColor=colors.HexColor("#2D2B28"), spaceBefore=14, spaceAfter=6,
+        leading=17, textColor=colors.HexColor("#8A6B28"), spaceBefore=14, spaceAfter=6,
     )
     practice = ParagraphStyle(
         "BookishPractice", parent=styles["Normal"], fontName="Times-Italic", fontSize=10.5,
