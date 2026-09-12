@@ -15,51 +15,80 @@ MODEL = "claude-opus-5"
 
 # Upload limits. MAX_UPLOAD_MB caps the request body; MAX_BOOK_CHARS caps how much
 # extracted text we actually send to the API, which is what drives cost.
-MAX_UPLOAD_MB = int(os.getenv("MAX_UPLOAD_MB", "20"))
+MAX_UPLOAD_MB = int(os.getenv("MAX_UPLOAD_MB", "5"))
 MAX_BOOK_CHARS = int(os.getenv("MAX_BOOK_CHARS", "300000"))
 app.config["MAX_CONTENT_LENGTH"] = MAX_UPLOAD_MB * 1024 * 1024
 
-LEADS_FILE = os.getenv("LEADS_FILE", "leads.jsonl")
+# Where the JSONL fallback lives. Prefer a mounted volume if one is present:
+# on Railway, attaching a Volume at /data makes this survive deploys.
+def _default_leads_file():
+    for d in ("/data", "/var/data"):
+        if os.path.isdir(d) and os.access(d, os.W_OK):
+            return os.path.join(d, "leads.jsonl")
+    return "leads.jsonl"
+
+
+LEADS_FILE = os.getenv("LEADS_FILE") or _default_leads_file()
+LEADS_TOKEN = os.getenv("LEADS_TOKEN", "")
 
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[a-zA-Z]{2,}$")
 
+TEACHING_FORMAT = (
+    "Write 8-12 teachings. Use exactly this structure for each one:\n\n"
+    "## <a short maxim of 3-8 words, in the voice of a teacher>\n\n"
+    "<One paragraph of 3-5 sentences revealing what the book shows and why it matters "
+    "to a life. Ground it in specifics - a character, a moment, a turn of the story. "
+    "Quiet authority, plain language, no hype.>\n\n"
+    "> <One practice the student can do today. A single imperative sentence.>\n\n"
+    "Separate each teaching with a line containing only ---\n\n"
+    "Close with a final section:\n\n"
+    "## The Seven Days\n\n"
+    "Seven lines, each 'Day N - <a small concrete action>'.\n\n"
+    "Rules:\n"
+    "- Never label the parts. The words 'Learning', 'Why it enriches life', "
+    "'How to apply today' and 'Example' must not appear.\n"
+    "- No bullet lists and no bold labels. Headings and prose only.\n"
+    "- Address the reader as 'you'. Avoid motivational cliche and avoid flattery.\n"
+    "- Do not invent events that are not in the book."
+)
+
+PROSE_FORMAT = (
+    "Write in flowing prose under short '## ' headings where a break is genuinely needed. "
+    "Do not use bullet lists or bold labels. Speak plainly, with the calm authority of "
+    "someone who knows the book well."
+)
+
 ACTIONS = {
-    "summary": "Write a concise but insightful summary of the book '{book}' by {author}. Cover the main themes, plot, and key takeaways in a way that gives someone a solid understanding of the book.",
-    "alternate_ending": "Imagine an alternate ending for the book '{book}' by {author}. Stay true to the characters and tone, but take the story in a different direction. Explain why this ending could also work.",
-    "enrich_life_key_points": (
-        "From the book '{book}' by {author}, extract the most meaningful learnings and present them as "
-        "point-by-point, descriptive takeaways designed to enrich a person's life.\n\n"
-        "Produce 8-12 numbered points. For each point include:\n"
-        "1. **Learning** — the core idea from the book\n"
-        "2. **Why it enriches life** — how it improves emotions, mental clarity, relationships, work, or health (1-2 lines)\n"
-        "3. **How to apply today** — one small, concrete action you can take right now\n"
-        "4. **Example** — a realistic, everyday scenario showing this in practice\n\n"
-        "Keep it practical and grounded, not generic motivation. Avoid spoilers unless the user asked for plot details.\n\n"
-        "After the numbered points, end with a short '7-Day Application Plan' — one point per day for the first 7 points, "
-        "with a brief daily micro-action."
+    "summary": (
+        "Give the essence of '{book}' by {author} - its themes, its movement, and what a "
+        "reader carries away from it.\n\n" + PROSE_FORMAT
     ),
-    "main_plot": "Describe the main plot of the book '{book}' by {author}. Walk through the major events, turning points, and resolution in a clear narrative.",
-    "suggestions": "Suggest 5 books similar to '{book}' by {author}. For each suggestion, explain briefly what it's about and why someone who enjoyed the original book would like it.",
+    "alternate_ending": (
+        "Imagine an alternate ending for '{book}' by {author}. Stay true to its characters "
+        "and tone, then show why this ending could also be true.\n\n" + PROSE_FORMAT
+    ),
+    "enrich_life_key_points": (
+        "You are passing on the distilled wisdom of '{book}' by {author} to a student who "
+        "wants to live better.\n\n" + TEACHING_FORMAT
+    ),
+    "main_plot": (
+        "Tell the story of '{book}' by {author} - its major events, turning points, and "
+        "resolution.\n\n" + PROSE_FORMAT
+    ),
+    "suggestions": (
+        "Name 5 books that belong beside '{book}' by {author}. For each, say what it is and "
+        "why it will speak to someone who valued this one. Use a '## ' heading per book, "
+        "then a short paragraph. No bullet lists, no bold labels."
+    ),
 }
 
 # When the user uploads the book, work from the supplied text rather than recall.
 UPLOAD_ACTIONS = {
-    "summary": "Write a concise but insightful summary of the book above. Cover the main themes, plot, and key takeaways.",
-    "alternate_ending": "Imagine an alternate ending for the book above. Stay true to its characters and tone, then explain why this ending could also work.",
-    "enrich_life_key_points": (
-        "From the book above, extract the most meaningful learnings and present them as point-by-point, "
-        "descriptive takeaways designed to enrich a person's life.\n\n"
-        "Produce 8-12 numbered points. For each point include:\n"
-        "1. **Learning** — the core idea from the book\n"
-        "2. **Why it enriches life** — how it improves emotions, mental clarity, relationships, work, or health (1-2 lines)\n"
-        "3. **How to apply today** — one small, concrete action you can take right now\n"
-        "4. **Example** — a realistic, everyday scenario showing this in practice\n\n"
-        "Keep it practical and grounded, not generic motivation.\n\n"
-        "After the numbered points, end with a short '7-Day Application Plan' — one point per day for the first 7 points, "
-        "with a brief daily micro-action."
-    ),
-    "main_plot": "Describe the main plot of the book above. Walk through the major events, turning points, and resolution.",
-    "suggestions": "Based on the book above, suggest 5 similar books. For each, explain briefly what it's about and why someone who enjoyed this book would like it.",
+    "summary": "Give the essence of the book above - its themes, its movement, and what a reader carries away.\n\n" + PROSE_FORMAT,
+    "alternate_ending": "Imagine an alternate ending for the book above. Stay true to its characters and tone, then show why it could also be true.\n\n" + PROSE_FORMAT,
+    "enrich_life_key_points": "You are passing on the distilled wisdom of the book above to a student who wants to live better.\n\n" + TEACHING_FORMAT,
+    "main_plot": "Tell the story of the book above - its major events, turning points, and resolution.\n\n" + PROSE_FORMAT,
+    "suggestions": "Name 5 books that belong beside the book above. Use a '## ' heading per book, then a short paragraph. No bullet lists, no bold labels.",
 }
 
 ACTION_LABELS = {
@@ -131,15 +160,17 @@ def run_action(selected_action, book_name, author_name, book_text=None):
     """Call the API for one action. Returns (result, error)."""
     if selected_action == "enrich_life_key_points":
         system_msg = (
-            "You are a knowledgeable and thoughtful book expert focused on practical life enrichment. "
-            "Be specific. Do not invent plot facts. If unsure, generalize responsibly and say so. "
-            "Use clear numbered formatting with bold labels."
+            "You are an old teacher passing knowledge to a student who came to you with a "
+            "question. You have read the book many times. Speak with restraint and warmth - "
+            "the authority is in the clarity, never in decoration. Be concrete and never "
+            "invent events from the book. Follow the requested structure exactly."
         )
         max_tokens = 8192
     else:
         system_msg = (
-            "You are a knowledgeable and thoughtful book expert. "
-            "Provide well-written, engaging responses about books. Use clear paragraphs and formatting."
+            "You are an old teacher passing knowledge to a student. You have read the book "
+            "many times. Speak plainly and with restraint; the authority is in the clarity. "
+            "Never invent events from the book. Follow the requested structure exactly."
         )
         max_tokens = 4096
 
@@ -284,19 +315,45 @@ def build_pdf(title, author, action_label, body):
         textColor=colors.HexColor("#2D2B28"), spaceAfter=8,
     )
 
+    teach = ParagraphStyle(
+        "BookishTeaching", parent=styles["Normal"], fontName="Times-Bold", fontSize=13,
+        leading=17, textColor=colors.HexColor("#2D2B28"), spaceBefore=14, spaceAfter=6,
+    )
+    practice = ParagraphStyle(
+        "BookishPractice", parent=styles["Normal"], fontName="Times-Italic", fontSize=10.5,
+        leading=15, textColor=colors.HexColor("#6B6560"), leftIndent=12,
+        borderPadding=0, spaceBefore=4, spaceAfter=10,
+    )
+
     story = [
         Paragraph(escape_pdf(title), h1),
-        Paragraph(escape_pdf(f"by {author}  ·  {action_label}"), meta),
+        Paragraph(escape_pdf(f"by {author}  -  {action_label}"), meta),
         HRFlowable(width="100%", thickness=0.6, color=colors.HexColor("#E8E4DF")),
         Spacer(1, 8),
     ]
 
-    for block in body.split("\n"):
-        block = block.strip()
-        if not block:
+    for raw in body.split("\n"):
+        line = raw.strip()
+        if not line:
             story.append(Spacer(1, 5))
             continue
-        story.append(Paragraph(markdown_bold(escape_pdf(block)), body_style))
+
+        if line in ("---", "***", "___"):
+            story.append(Spacer(1, 4))
+            story.append(HRFlowable(width="34%", thickness=0.6,
+                                    color=colors.HexColor("#E8E4DF"), hAlign="CENTER"))
+            story.append(Spacer(1, 4))
+            continue
+
+        if line.startswith("#"):
+            story.append(Paragraph(markdown_inline(escape_pdf(line.lstrip("#").strip())), teach))
+            continue
+
+        if line.startswith(">"):
+            story.append(Paragraph(markdown_inline(escape_pdf(line.lstrip(">").strip())), practice))
+            continue
+
+        story.append(Paragraph(markdown_inline(escape_pdf(line)), body_style))
 
     doc.build(story)
     buf.seek(0)
@@ -308,9 +365,11 @@ def escape_pdf(text):
     return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 
-def markdown_bold(text):
-    """Turn **bold** into reportlab's <b> markup."""
-    return re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", text)
+def markdown_inline(text):
+    """Turn **bold** and *italic* into reportlab's inline markup."""
+    text = re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", text)
+    text = re.sub(r"(?<!\*)\*([^*\n]+?)\*(?!\*)", r"<i>\1</i>", text)
+    return text
 
 
 # --- Routes ------------------------------------------------------------------
@@ -458,6 +517,49 @@ def suggest_book():
         return jsonify({"error": f"Something went wrong: {e}"}), 500
 
 
+@app.route("/admin/leads")
+def export_leads():
+    """Export captured emails as JSON.
+
+    Protected by LEADS_TOKEN: call /admin/leads?token=<LEADS_TOKEN>. Returns 404
+    when no token is configured, so the endpoint does not exist by default.
+    """
+    if not LEADS_TOKEN:
+        return jsonify({"error": "Not found"}), 404
+    if request.args.get("token") != LEADS_TOKEN:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    dsn = os.getenv("DATABASE_URL")
+    if dsn:
+        try:
+            import psycopg
+
+            with psycopg.connect(dsn) as conn:
+                with conn.cursor() as cur:
+                    cur.execute(
+                        "SELECT email, book_title, author, action, consent, created_at"
+                        " FROM pdf_leads ORDER BY created_at DESC"
+                    )
+                    cols = [c.name for c in cur.description]
+                    rows = [dict(zip(cols, r)) for r in cur.fetchall()]
+            for r in rows:
+                r["created_at"] = r["created_at"].isoformat()
+            return jsonify({"source": "postgres", "count": len(rows), "leads": rows})
+        except Exception as e:
+            app.logger.error("Could not read leads from Postgres: %s", e)
+            return jsonify({"error": "Could not read leads."}), 500
+
+    try:
+        with open(LEADS_FILE, encoding="utf-8") as f:
+            rows = [json.loads(line) for line in f if line.strip()]
+        return jsonify({"source": LEADS_FILE, "count": len(rows), "leads": rows})
+    except FileNotFoundError:
+        return jsonify({"source": LEADS_FILE, "count": 0, "leads": []})
+    except Exception as e:
+        app.logger.error("Could not read %s: %s", LEADS_FILE, e)
+        return jsonify({"error": "Could not read leads."}), 500
+
+
 @app.route("/api/download-pdf", methods=["POST"])
 def download_pdf():
     """Generate the PDF server-side, but only in exchange for an email address."""
@@ -492,6 +594,15 @@ def download_pdf():
         mimetype="application/pdf",
         as_attachment=True,
         download_name=f"{filename}_Bookish.pdf",
+    )
+
+
+if not os.getenv("DATABASE_URL"):
+    app.logger.warning(
+        "DATABASE_URL is not set. Captured emails go to %s. If that path is not a "
+        "mounted volume, it is WIPED on every deploy - attach a Postgres service "
+        "or a volume before collecting real addresses.",
+        LEADS_FILE,
     )
 
 

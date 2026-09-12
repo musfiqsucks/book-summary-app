@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23FAF9F7'/%3E%3Cpath d='M16 9.5c-2-1.6-4.4-2.2-7-2.1v13.2c2.6-.1 5 .5 7 2.1 2-1.6 4.4-2.2 7-2.1V7.4c-2.6-.1-5 .5-7 2.1z' fill='none' stroke='%232D2B28' stroke-width='1.6' stroke-linejoin='round'/%3E%3Cpath d='M16 9.5v13.2' stroke='%232D2B28' stroke-width='1.6'/%3E%3Cpath d='M16 4.2c1.5 1.4 1.5 2.8 0 4.2-1.5-1.4-1.5-2.8 0-4.2z' fill='%23D97757'/%3E%3C/svg%3E">
+    <meta name="theme-color" content="#FAF9F7">
     <title>Bookish - AI Book Explorer</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
     <style>
@@ -193,12 +195,78 @@
         .result-card .result-body {
             background: var(--result-bg);
             border-radius: 10px;
-            padding: 20px;
-            white-space: pre-line;
-            font-size: 0.92rem;
-            line-height: 1.75;
+            padding: 30px 28px;
+            font-family: 'Libre Baskerville', Georgia, serif;
+            font-size: 0.93rem;
+            line-height: 1.95;
             color: var(--text);
         }
+
+        /* Plain-text results (no markdown) keep their line breaks. */
+        .result-body.is-plain { white-space: pre-line; }
+
+        .result-body p { margin-bottom: 1.05em; }
+        .result-body p:last-child { margin-bottom: 0; }
+
+        /* The maxim that opens each teaching. */
+        .result-body h3 {
+            font-family: 'Libre Baskerville', Georgia, serif;
+            font-size: 1.02rem;
+            font-weight: 700;
+            line-height: 1.5;
+            color: var(--text);
+            margin: 1.6em 0 0.65em;
+            padding-left: 16px;
+            border-left: 2px solid var(--accent);
+        }
+        .result-body h3:first-child { margin-top: 0; }
+
+        /* Counts the teachings without the model having to number them. */
+        .result-body { counter-reset: teaching; }
+        .result-body h3::before {
+            counter-increment: teaching;
+            content: counter(teaching, upper-roman) ". ";
+            color: var(--accent);
+            font-size: 0.82em;
+            letter-spacing: 0.06em;
+        }
+
+        /* The single practice offered at the end of a teaching. */
+        .result-body blockquote {
+            margin: 0.9em 0 1.3em;
+            padding: 12px 16px 12px 18px;
+            background: rgba(217, 119, 87, 0.055);
+            border-left: 2px solid rgba(217, 119, 87, 0.35);
+            border-radius: 0 8px 8px 0;
+            font-style: italic;
+            font-size: 0.89rem;
+            line-height: 1.7;
+            color: var(--text-secondary);
+        }
+        .result-body blockquote p { margin: 0; }
+
+        /* Ornamental divider between teachings. */
+        .result-body hr {
+            border: none;
+            margin: 1.9em 0;
+            text-align: center;
+            overflow: visible;
+            height: 0;
+        }
+        .result-body hr::after {
+            content: "❖";
+            display: inline-block;
+            position: relative;
+            top: -0.75em;
+            color: var(--border);
+            font-size: 0.8rem;
+            letter-spacing: 0.4em;
+        }
+
+        .result-body ul, .result-body ol { margin: 0 0 1.05em 1.3em; }
+        .result-body li { margin-bottom: 0.45em; }
+        .result-body strong { font-weight: 700; }
+        .result-body em { font-style: italic; }
 
         .error-box {
             background: var(--error-bg);
@@ -296,21 +364,29 @@
         }
 
         /* --- Book finder / upload --- */
-        .toggle-row {
+        /* Specificity must beat `.form-group label { display: block }` above,
+           otherwise the box and its text stack instead of sharing a row. */
+        .form-group label.toggle-row,
+        .modal label.toggle-row,
+        label.toggle-row {
             display: flex;
-            align-items: flex-start;
+            align-items: center;
             gap: 10px;
             cursor: pointer;
             font-weight: 400;
             font-size: 0.9rem;
             color: var(--text-secondary);
             margin-bottom: 0;
+            line-height: 1.45;
         }
 
-        .toggle-row input[type="checkbox"] {
+        label.toggle-row.multiline { align-items: flex-start; }
+        label.toggle-row.multiline input[type="checkbox"] { margin-top: 3px; }
+
+        label.toggle-row input[type="checkbox"] {
             width: 16px;
             height: 16px;
-            margin-top: 2px;
+            margin: 0;
             accent-color: var(--accent);
             flex-shrink: 0;
             cursor: pointer;
@@ -522,7 +598,8 @@
             <span class="result-badge" id="resultBadge"></span>
         </div>
         <div class="result-meta" id="resultMeta">by {{ author_name }}</div>
-        <div class="result-body" id="resultBody">{{ result }}</div>
+        <div class="result-body" id="resultBody"></div>
+        <textarea id="rawResult" hidden>{{ result }}</textarea>
         <button type="button" class="btn btn-download" id="downloadPdfBtn">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
             Download as PDF
@@ -535,7 +612,7 @@
             <p class="modal-sub">Enter your email to download the PDF.</p>
             <label for="emailInput" class="sr-only">Email address</label>
             <input type="email" id="emailInput" placeholder="you@example.com" autocomplete="email">
-            <label class="toggle-row" for="consentInput">
+            <label class="toggle-row multiline" for="consentInput">
                 <input type="checkbox" id="consentInput">
                 <span>I agree to receive this PDF and occasional updates by email.</span>
             </label>
@@ -570,6 +647,73 @@
         function showError(msg) {
             formError.textContent = msg;
             formError.hidden = !msg;
+        }
+
+        // --- Minimal markdown renderer -------------------------------------
+        // Escapes first, then converts, so model output can never inject HTML.
+        function escapeHtml(str) {
+            return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+
+        function inlineMd(str) {
+            return str
+                .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+                .replace(/(^|[^*])\*([^*\n]+)\*(?!\*)/g, '$1<em>$2</em>');
+        }
+
+        function renderMarkdown(src) {
+            const lines = String(src).replace(/\r\n/g, '\n').split('\n');
+            const out = [];
+            let para = [], quote = [], listTag = null;
+
+            const flushPara = () => {
+                if (para.length) { out.push('<p>' + inlineMd(escapeHtml(para.join('\n'))).replace(/\n/g, '<br>') + '</p>'); para = []; }
+            };
+            const flushQuote = () => {
+                if (quote.length) { out.push('<blockquote><p>' + inlineMd(escapeHtml(quote.join(' '))) + '</p></blockquote>'); quote = []; }
+            };
+            const flushList = () => { if (listTag) { out.push('</' + listTag + '>'); listTag = null; } };
+            const flushAll = () => { flushPara(); flushQuote(); flushList(); };
+
+            for (const raw of lines) {
+                const line = raw.trim();
+
+                if (!line) { flushAll(); continue; }
+
+                if (/^(-{3,}|\*{3,}|_{3,})$/.test(line)) { flushAll(); out.push('<hr>'); continue; }
+
+                const h = line.match(/^(#{1,6})\s+(.*)$/);
+                if (h) { flushAll(); out.push('<h3>' + inlineMd(escapeHtml(h[2])) + '</h3>'); continue; }
+
+                if (line.startsWith('>')) {
+                    flushPara(); flushList();
+                    quote.push(line.replace(/^>\s?/, ''));
+                    continue;
+                }
+
+                const ol = line.match(/^(\d+)[.)]\s+(.*)$/);
+                const ul = line.match(/^[-*+]\s+(.*)$/);
+                if (ol || ul) {
+                    flushPara(); flushQuote();
+                    const tag = ol ? 'ol' : 'ul';
+                    if (listTag !== tag) { flushList(); out.push('<' + tag + '>'); listTag = tag; }
+                    out.push('<li>' + inlineMd(escapeHtml(ol ? ol[2] : ul[1])) + '</li>');
+                    continue;
+                }
+
+                flushQuote(); flushList();
+                para.push(line);
+            }
+
+            flushAll();
+            return out.join('');
+        }
+
+        const rawResult = $('rawResult');
+
+        function paintResult(text) {
+            rawResult.value = text;
+            $('resultBody').innerHTML = renderMarkdown(text);
         }
 
         // --- Action chips ---
@@ -751,7 +895,7 @@
             $('resultTitle').textContent = data.book_name;
             $('resultMeta').textContent = 'by ' + data.author_name;
             $('resultBadge').textContent = data.action_label || '';
-            $('resultBody').textContent = data.result;
+            paintResult(data.result);
             resultCard.hidden = false;
             newBookBtn.hidden = false;
             // Bring the reader to the result instead of leaving them at the top.
@@ -827,7 +971,7 @@
                         title: $('resultTitle').textContent,
                         author: $('resultMeta').textContent.replace(/^by\s+/, ''),
                         action: $('actionInput').value,
-                        body: $('resultBody').textContent
+                        body: rawResult.value
                     })
                 });
 
@@ -859,8 +1003,9 @@
             }
         });
 
-        // If the server rendered a result (no-JS fallback path), scroll to it.
-        if (!resultCard.hidden) {
+        // If the server rendered a result (no-JS fallback path), format and scroll to it.
+        if (!resultCard.hidden && rawResult.value.trim()) {
+            paintResult(rawResult.value);
             window.addEventListener('load', () => {
                 resultCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
             });
