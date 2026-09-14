@@ -655,51 +655,55 @@
             letter-spacing: 0.11em; text-transform: uppercase; white-space: nowrap;
         }
 
-        /* --- Language picker --- */
-        .lang-picker {
+        /* --- Language switcher (top right) --- */
+        .topnav {
+            position: relative;
+            z-index: 2;
+            width: 100%;
+            max-width: 560px;
             display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
+            justify-content: flex-end;
+            margin-bottom: 18px;
         }
 
-        .lang-opt {
-            flex: 1 1 0;
-            min-width: 96px;
-            padding: 10px 12px;
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            background: var(--input-bg);
+        .topnav select {
+            appearance: none;
+            -webkit-appearance: none;
+            padding: 7px 30px 7px 12px;
+            border: 1px solid var(--border-lit);
+            border-radius: 8px;
+            background-color: var(--surface);
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M3 5l3 3 3-3' stroke='%23C9A961' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 9px center;
+            background-size: 12px;
             color: var(--text-secondary);
             font-family: inherit;
-            font-size: 0.85rem;
+            font-size: 0.82rem;
             cursor: pointer;
-            text-align: center;
-            transition: border-color 0.15s, background 0.15s, color 0.15s;
+            transition: border-color 0.15s, color 0.15s;
         }
 
-        .lang-opt:hover { border-color: var(--accent); color: var(--text); }
-
-        .lang-opt.selected {
+        .topnav select:hover,
+        .topnav select:focus {
             border-color: var(--accent);
-            background: var(--accent-dim);
-            color: var(--accent);
-            font-weight: 600;
-            box-shadow: 0 0 0 1px rgba(201, 169, 97, 0.25);
+            color: var(--text);
+            outline: none;
         }
 
-        .lang-opt .native {
-            display: block;
-            font-size: 0.74rem;
-            opacity: 0.75;
-            margin-top: 2px;
-            font-weight: 400;
-        }
+        .topnav select option { background: var(--surface); color: var(--text); }
 
-        /* Bangla results want a touch more line height to breathe. */
-        .result-body.lang-bn, .result-body.lang-both {
+        /* Bangla needs a touch more line height, in the UI and in results. */
+        body.lang-bn { font-family: 'Inter', 'Noto Sans Bengali', sans-serif; }
+        body.lang-bn .result-body,
+        .result-body.lang-bn {
             font-family: 'Libre Baskerville', 'Noto Serif Bengali', Georgia, serif;
             line-height: 2.15;
         }
+        body.lang-bn .form-group label,
+        body.lang-bn .header p,
+        body.lang-bn .result-card .result-meta,
+        body.lang-bn .result-badge { letter-spacing: 0.02em; }
 
         /* --- Email modal --- */
         .modal-backdrop {
@@ -744,7 +748,7 @@
 
     <div class="loading-overlay" id="loadingOverlay">
         <div class="spinner"></div>
-        <div class="loading-text">Consulting the text...</div>
+        <div class="loading-text" data-i18n="loading">Consulting the text...</div>
     </div>
 
     <div class="ambience" aria-hidden="true">
@@ -752,6 +756,14 @@
         <div class="glow secondary"></div>
         <div class="vignette"></div>
     </div>
+
+    <nav class="topnav">
+        <label for="langSelect" class="sr-only">Language</label>
+        <select id="langSelect" aria-label="Language">
+            <option value="en">English</option>
+            <option value="bn">বাংলা</option>
+        </select>
+    </nav>
 
     <div class="header">
         <div class="lantern" aria-hidden="true">
@@ -773,7 +785,7 @@
             </svg>
         </div>
         <h1>Bookish</h1>
-        <p>What the book knows, made plain</p>
+        <p data-i18n="tagline">What the book knows, made plain</p>
     </div>
 
     <div class="card">
@@ -782,33 +794,33 @@
             <div class="error-box" id="formError" {% if not error %}hidden{% endif %}>{{ error }}</div>
 
             <div class="form-group">
-                <label for="book_name">Book title</label>
-                <input type="text" id="book_name" name="book_name" placeholder="e.g. The Great Gatsby" value="{{ book_name }}" required>
+                <label for="book_name" data-i18n="bookTitle">Book title</label>
+                <input type="text" id="book_name" name="book_name" placeholder="e.g. The Great Gatsby" data-i18n-ph="bookTitlePh" value="{{ book_name }}" required>
             </div>
 
             <div class="form-group">
-                <label for="author_name">Author</label>
-                <input type="text" id="author_name" name="author_name" placeholder="e.g. F. Scott Fitzgerald" value="{{ author_name }}" required>
+                <label for="author_name" data-i18n="author">Author</label>
+                <input type="text" id="author_name" name="author_name" placeholder="e.g. F. Scott Fitzgerald" data-i18n-ph="authorPh" value="{{ author_name }}" required>
             </div>
 
             <div class="form-group">
                 <label class="toggle-row" for="finderToggle">
                     <input type="checkbox" id="finderToggle">
-                    <span>I don't know the exact title or author</span>
+                    <span data-i18n="dontKnow">I don't know the exact title or author</span>
                 </label>
 
                 <div id="finderPanel" class="sub-panel" hidden>
-                    <label for="book_description">Describe the book &amp; characters</label>
-                    <textarea id="book_description" placeholder="e.g. A dystopian novel about a man who starts questioning a society where books are burned by firemen..."></textarea>
+                    <label for="book_description" data-i18n="describe">Describe the book &amp; characters</label>
+                    <textarea id="book_description" placeholder="e.g. A dystopian novel about a man who starts questioning a society where books are burned by firemen..." data-i18n-ph="describePh"></textarea>
                     <button type="button" id="findBookBtn" class="btn btn-secondary" style="margin-top:8px;">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                        Find the book
+                        <span data-i18n="findBook">Find the book</span>
                     </button>
                     <div id="matchList" class="match-list" hidden></div>
                     <div id="suggestionError" class="error-box" style="display:none;margin-top:8px;"></div>
 
                     <div class="upload-block">
-                        <p class="upload-hint">Still not found? Upload the book as a PDF and we'll read it directly.</p>
+                        <p class="upload-hint" data-i18n="uploadHint">Still not found? Upload the book as a PDF and we'll read it directly.</p>
                         <input type="file" id="book_file" name="book_file" accept="application/pdf,.pdf">
                         <div id="fileInfo" class="file-info" hidden></div>
                     </div>
@@ -816,36 +828,28 @@
             </div>
 
             <div class="form-group">
-                <label>What would you like?</label>
+                <label data-i18n="whatWould">What would you like?</label>
                 <input type="hidden" name="action" id="actionInput" value="{{ selected_action }}">
                 <div class="action-chips">
-                    <div class="action-chip {% if selected_action == 'summary' %}selected{% endif %}" data-value="summary">Summary</div>
-                    <div class="action-chip {% if selected_action == 'suggestions' %}selected{% endif %}" data-value="suggestions">Similar Books</div>
-                    <div class="action-chip {% if selected_action == 'main_plot' %}selected{% endif %}" data-value="main_plot">Main Plot</div>
-                    <div class="action-chip {% if selected_action == 'alternate_ending' %}selected{% endif %}" data-value="alternate_ending">Alternate Ending</div>
-                    <div class="action-chip {% if selected_action == 'enrich_life_key_points' %}selected{% endif %}" data-value="enrich_life_key_points">Learn the key points to enrich your life</div>
+                    <div class="action-chip {% if selected_action == 'summary' %}selected{% endif %}" data-value="summary" data-i18n="summary">Summary</div>
+                    <div class="action-chip {% if selected_action == 'suggestions' %}selected{% endif %}" data-value="suggestions" data-i18n="suggestions">Similar Books</div>
+                    <div class="action-chip {% if selected_action == 'main_plot' %}selected{% endif %}" data-value="main_plot" data-i18n="main_plot">Main Plot</div>
+                    <div class="action-chip {% if selected_action == 'alternate_ending' %}selected{% endif %}" data-value="alternate_ending" data-i18n="alternate_ending">Alternate Ending</div>
+                    <div class="action-chip {% if selected_action == 'enrich_life_key_points' %}selected{% endif %}" data-value="enrich_life_key_points" data-i18n="enrich_life_key_points">Learn the key points to enrich your life</div>
                 </div>
             </div>
 
-            <div class="form-group">
-                <label>Language of the answer</label>
-                <input type="hidden" name="language" id="languageInput" value="{{ selected_language }}">
-                <div class="lang-picker">
-                    <button type="button" class="lang-opt {% if selected_language == 'en' %}selected{% endif %}" data-value="en">English</button>
-                    <button type="button" class="lang-opt {% if selected_language == 'bn' %}selected{% endif %}" data-value="bn">Bangla<span class="native">বাংলা</span></button>
-                    <button type="button" class="lang-opt {% if selected_language == 'both' %}selected{% endif %}" data-value="both">Both<span class="native">দুটোই</span></button>
-                </div>
-            </div>
+            <input type="hidden" name="language" id="languageInput" value="{{ selected_language }}">
 
             <button type="submit" class="btn btn-primary" id="submitBtn">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                Get your result
+                <span data-i18n="getResult">Get your result</span>
             </button>
         </form>
 
         <button type="button" class="btn btn-reset" id="newBookBtn" {% if not result %}hidden{% endif %}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v6h6"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L3 8"/></svg>
-            Start over
+            <span data-i18n="startOver">Start over</span>
         </button>
     </div>
 
@@ -859,30 +863,30 @@
         <textarea id="rawResult" hidden>{{ result }}</textarea>
         <button type="button" class="btn btn-download" id="downloadPdfBtn">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            Download as PDF
+            <span data-i18n="downloadPdf">Download as PDF</span>
         </button>
     </div>
 
     <div class="modal-backdrop" id="emailModal" hidden>
         <div class="modal">
-            <h3>Where should we send it?</h3>
-            <p class="modal-sub">Enter your email to download the PDF.</p>
+            <h3 data-i18n="modalTitle">Where should we send it?</h3>
+            <p class="modal-sub" data-i18n="modalSub">Enter your email to download the PDF.</p>
             <label for="emailInput" class="sr-only">Email address</label>
             <input type="email" id="emailInput" placeholder="you@example.com" autocomplete="email">
             <label class="toggle-row multiline" for="consentInput">
                 <input type="checkbox" id="consentInput">
-                <span>I agree to receive this PDF and occasional updates by email.</span>
+                <span data-i18n="consent">I agree to receive this PDF and occasional updates by email.</span>
             </label>
             <div class="error-box" id="emailError" hidden></div>
             <div class="modal-actions">
-                <button type="button" class="btn btn-secondary" id="emailCancel">Cancel</button>
-                <button type="button" class="btn btn-primary" id="emailSubmit">Get the PDF</button>
+                <button type="button" class="btn btn-secondary" id="emailCancel" data-i18n="cancel">Cancel</button>
+                <button type="button" class="btn btn-primary" id="emailSubmit" data-i18n="getPdf">Get the PDF</button>
             </div>
         </div>
     </div>
 
     <div class="footer">
-        © 2026 All Rights Reserved. &middot; Developed by Mus
+        <span data-i18n="footer">© 2026 All Rights Reserved. &middot; Developed by Mus</span>
     </div>
 
     <script>
@@ -971,7 +975,7 @@
         function paintResult(text, language) {
             rawResult.value = text;
             const body = $('resultBody');
-            body.className = 'result-body' + (language && language !== 'en' ? ' lang-' + language : '');
+            body.className = 'result-body' + (language === 'bn' ? ' lang-bn' : '');
             body.innerHTML = renderMarkdown(text);
         }
 
@@ -984,15 +988,126 @@
             });
         });
 
-        // --- Language picker ---
+        // --- Language switcher -------------------------------------------
+        // One choice drives both the interface text and the language the
+        // answer comes back in.
+        const I18N = {
+            en: {
+                tagline: "What the book knows, made plain",
+                loading: "Consulting the text...",
+                bookTitle: "Book title",
+                bookTitlePh: "e.g. The Great Gatsby",
+                author: "Author",
+                authorPh: "e.g. F. Scott Fitzgerald",
+                dontKnow: "I don't know the exact title or author",
+                describe: "Describe the book & characters",
+                describePh: "e.g. A dystopian novel about a man who starts questioning a society where books are burned by firemen...",
+                findBook: "Find the book",
+                searching: "Searching...",
+                uploadHint: "Still not found? Upload the book as a PDF and we'll read it directly.",
+                whatWould: "What would you like?",
+                summary: "Summary",
+                suggestions: "Similar Books",
+                main_plot: "Main Plot",
+                alternate_ending: "Alternate Ending",
+                enrich_life_key_points: "Learn the key points to enrich your life",
+                getResult: "Get your result",
+                startOver: "Start over",
+                downloadPdf: "Download as PDF",
+                modalTitle: "Where should we send it?",
+                modalSub: "Enter your email to download the PDF.",
+                emailPh: "you@example.com",
+                consent: "I agree to receive this PDF and occasional updates by email.",
+                cancel: "Cancel",
+                getPdf: "Get the PDF",
+                preparing: "Preparing...",
+                by: "by",
+                footer: "© 2026 All Rights Reserved. · Developed by Mus",
+                errDescribe: "Please describe the book first.",
+                errFields: "Please enter both a book name and author name, or upload the book as a PDF.",
+                errNetwork: "Network error. Please try again.",
+                errEmail: "Please enter a valid email address.",
+                errConsent: "Please tick the box to continue.",
+                errPdf: "Could not generate the PDF.",
+                fileTooBig: "That file is {size} MB. The maximum is {max} MB.",
+                fileReady: "{name} ({size} MB) - we will read this directly."
+            },
+            bn: {
+                tagline: "বই যা জানে, সহজ ভাষায়",
+                loading: "পাঠ্যটি দেখা হচ্ছে...",
+                bookTitle: "বইয়ের নাম",
+                bookTitlePh: "যেমন: দ্য গ্রেট গ্যাটসবি",
+                author: "লেখক",
+                authorPh: "যেমন: এফ. স্কট ফিটজেরাল্ড",
+                dontKnow: "আমি সঠিক নাম বা লেখক জানি না",
+                describe: "বই ও চরিত্রগুলোর বর্ণনা দিন",
+                describePh: "যেমন: একটি ডিস্টোপিয়ান উপন্যাস, যেখানে দমকলকর্মীরা বই পুড়িয়ে দেয়...",
+                findBook: "বইটি খুঁজুন",
+                searching: "খোঁজা হচ্ছে...",
+                uploadHint: "এখনও পাননি? বইটি পিডিএফ আকারে আপলোড করুন, আমরা সরাসরি পড়ে নেব।",
+                whatWould: "আপনি কী চান?",
+                summary: "সারসংক্ষেপ",
+                suggestions: "একই ধরনের বই",
+                main_plot: "মূল কাহিনি",
+                alternate_ending: "বিকল্প সমাপ্তি",
+                enrich_life_key_points: "জীবন সমৃদ্ধ করার মূল শিক্ষাগুলো",
+                getResult: "ফলাফল দেখুন",
+                startOver: "আবার শুরু করুন",
+                downloadPdf: "পিডিএফ ডাউনলোড করুন",
+                modalTitle: "কোথায় পাঠাব?",
+                modalSub: "পিডিএফ ডাউনলোড করতে আপনার ইমেইল দিন।",
+                emailPh: "you@example.com",
+                consent: "আমি এই পিডিএফ ও মাঝে মাঝে আপডেট ইমেইলে পেতে সম্মত।",
+                cancel: "বাতিল",
+                getPdf: "পিডিএফ নিন",
+                preparing: "প্রস্তুত করা হচ্ছে...",
+                by: "লিখেছেন",
+                footer: "© ২০২৬ সর্বস্বত্ব সংরক্ষিত। · নির্মাতা: মুস",
+                errDescribe: "আগে বইটির বর্ণনা দিন।",
+                errFields: "বইয়ের নাম ও লেখকের নাম দিন, অথবা বইটি পিডিএফ আকারে আপলোড করুন।",
+                errNetwork: "নেটওয়ার্ক সমস্যা। আবার চেষ্টা করুন।",
+                errEmail: "সঠিক ইমেইল ঠিকানা দিন।",
+                errConsent: "এগোতে হলে বাক্সে টিক দিন।",
+                errPdf: "পিডিএফ তৈরি করা যায়নি।",
+                fileTooBig: "ফাইলটি {size} এমবি। সর্বোচ্চ {max} এমবি।",
+                fileReady: "{name} ({size} এমবি) - আমরা এটি সরাসরি পড়ব।"
+            }
+        };
+
         const languageInput = $('languageInput');
-        document.querySelectorAll('.lang-opt').forEach(opt => {
-            opt.addEventListener('click', () => {
-                document.querySelectorAll('.lang-opt').forEach(o => o.classList.remove('selected'));
-                opt.classList.add('selected');
-                languageInput.value = opt.dataset.value;
+        const langSelect = $('langSelect');
+        let LANG = languageInput.value === 'bn' ? 'bn' : 'en';
+
+        const t = (key) => (I18N[LANG] && I18N[LANG][key]) || I18N.en[key] || '';
+
+        function applyLanguage(lang) {
+            LANG = (lang === 'bn') ? 'bn' : 'en';
+            languageInput.value = LANG;
+            langSelect.value = LANG;
+            document.documentElement.lang = LANG;
+            document.body.classList.toggle('lang-bn', LANG === 'bn');
+
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const v = t(el.dataset.i18n);
+                if (v) el.textContent = v;
             });
-        });
+            document.querySelectorAll('[data-i18n-ph]').forEach(el => {
+                const v = t(el.dataset.i18nPh);
+                if (v) el.placeholder = v;
+            });
+
+            try { localStorage.setItem('bookish_lang', LANG); } catch (e) { /* ignore */ }
+        }
+
+        langSelect.addEventListener('change', () => applyLanguage(langSelect.value));
+
+        // Restore the reader's previous choice, unless the server already
+        // rendered a result in a specific language.
+        try {
+            const saved = localStorage.getItem('bookish_lang');
+            if (saved && !rawResult.value.trim()) applyLanguage(saved);
+            else applyLanguage(LANG);
+        } catch (e) { applyLanguage(LANG); }
 
         // --- Finder panel visibility ---
         // Shown only when the checkbox is on AND the title/author are still empty.
@@ -1019,12 +1134,12 @@
 
             const mb = f.size / (1024 * 1024);
             if (mb > MAX_UPLOAD_MB) {
-                showError('That file is ' + mb.toFixed(1) + ' MB. The maximum is ' + MAX_UPLOAD_MB + ' MB.');
+                showError(t('fileTooBig').replace('{size}', mb.toFixed(1)).replace('{max}', MAX_UPLOAD_MB));
                 fileInput.value = '';
                 fileInfo.hidden = true;
             } else {
                 showError('');
-                fileInfo.textContent = f.name + ' (' + mb.toFixed(1) + ' MB) - we will read this directly.';
+                fileInfo.textContent = t('fileReady').replace('{name}', f.name).replace('{size}', mb.toFixed(1));
                 fileInfo.hidden = false;
             }
             syncFinder();
@@ -1034,19 +1149,19 @@
         const findBookBtn = $('findBookBtn');
         const matchList = $('matchList');
         const suggestionError = $('suggestionError');
-        const FIND_LABEL = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> Find the book';
+        const FIND_ICON = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> ';
 
         findBookBtn.addEventListener('click', async () => {
             const description = $('book_description').value.trim();
             if (!description) {
-                suggestionError.textContent = 'Please describe the book first.';
+                suggestionError.textContent = t('errDescribe');
                 suggestionError.style.display = 'block';
                 matchList.hidden = true;
                 return;
             }
 
             findBookBtn.disabled = true;
-            findBookBtn.textContent = 'Searching...';
+            findBookBtn.textContent = t('searching');
             suggestionError.style.display = 'none';
             matchList.hidden = true;
 
@@ -1065,11 +1180,11 @@
                     renderMatches(data.matches || []);
                 }
             } catch (err) {
-                suggestionError.textContent = 'Network error. Please try again.';
+                suggestionError.textContent = t('errNetwork');
                 suggestionError.style.display = 'block';
             } finally {
                 findBookBtn.disabled = false;
-                findBookBtn.innerHTML = FIND_LABEL;
+                findBookBtn.innerHTML = FIND_ICON + '<span data-i18n="findBook">' + t('findBook') + '</span>';
             }
         });
 
@@ -1131,7 +1246,7 @@
 
             const hasFile = fileInput.files.length > 0;
             if (!hasFile && (!bookName.value.trim() || !authorName.value.trim())) {
-                showError('Please enter both a book name and author name, or upload the book as a PDF.');
+                showError(t('errFields'));
                 return;
             }
 
@@ -1153,7 +1268,7 @@
                     renderResult(data);
                 }
             } catch (err) {
-                showError('Network error. Please try again.');
+                showError(t('errNetwork'));
             } finally {
                 $('loadingOverlay').classList.remove('active');
                 submitBtn.disabled = false;
@@ -1162,7 +1277,7 @@
 
         function renderResult(data) {
             $('resultTitle').textContent = data.book_name;
-            $('resultMeta').textContent = 'by ' + data.author_name;
+            $('resultMeta').textContent = t('by') + ' ' + data.author_name;
             $('resultBadge').textContent = data.action_label || '';
             paintResult(data.result, data.language);
             resultCard.hidden = false;
@@ -1216,19 +1331,19 @@
         emailSubmit.addEventListener('click', async () => {
             const email = emailInput.value.trim();
             if (!/^[^@\s]+@[^@\s]+\.[a-zA-Z]{2,}$/.test(email)) {
-                emailError.textContent = 'Please enter a valid email address.';
+                emailError.textContent = t('errEmail');
                 emailError.hidden = false;
                 return;
             }
             if (!consentInput.checked) {
-                emailError.textContent = 'Please tick the box to continue.';
+                emailError.textContent = t('errConsent');
                 emailError.hidden = false;
                 return;
             }
 
             emailError.hidden = true;
             emailSubmit.disabled = true;
-            emailSubmit.textContent = 'Preparing...';
+            emailSubmit.textContent = t('preparing');
 
             try {
                 const res = await fetch('/api/download-pdf', {
@@ -1246,7 +1361,7 @@
 
                 if (!res.ok) {
                     const err = await res.json().catch(() => ({}));
-                    emailError.textContent = err.error || 'Could not generate the PDF.';
+                    emailError.textContent = err.error || t('errPdf');
                     emailError.hidden = false;
                     return;
                 }
@@ -1264,11 +1379,11 @@
                 try { localStorage.setItem('bookish_email', email); } catch (e) { /* ignore */ }
                 emailModal.hidden = true;
             } catch (err) {
-                emailError.textContent = 'Network error. Please try again.';
+                emailError.textContent = t('errNetwork');
                 emailError.hidden = false;
             } finally {
                 emailSubmit.disabled = false;
-                emailSubmit.textContent = 'Get the PDF';
+                emailSubmit.textContent = t('getPdf');
             }
         });
 

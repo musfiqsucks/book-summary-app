@@ -126,8 +126,9 @@ full price. Lower `MAX_BOOK_CHARS` if that matters more than covering long books
 
 ## Languages
 
-The form has a language picker: **English** (default), **বাংলা**, or **Both** (the full
-answer in English, a `===` rule, then the complete Bangla translation).
+A dropdown in the top-right switches the whole app between **English** (default) and
+**বাংলা**. It is not only the answer: the interface text switches with it, and the choice
+is remembered in `localStorage` for the next visit.
 
 Bangla PDFs need real text shaping — Bengali forms conjuncts and moves some vowel signs
 in front of their consonant. PDFs are therefore generated with **fpdf2 + uharfbuzz**,

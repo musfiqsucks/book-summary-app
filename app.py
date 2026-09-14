@@ -105,7 +105,6 @@ UPLOAD_ACTIONS = {
 LANGUAGES = {
     "en": "English",
     "bn": "Bangla",
-    "both": "English + Bangla",
 }
 
 LANGUAGE_RULES = {
@@ -117,13 +116,6 @@ LANGUAGE_RULES = {
         "natural literary Bangla, not a word-for-word transliteration of English. "
         "Keep the book's title and the author's name in their original script, and "
         "write 'Day' as 'দিন' in the closing section."
-    ),
-    "both": (
-        "\n\nProduce the response twice. First the complete response in English, "
-        "exactly as structured above. Then a line containing only ===, and then the "
-        "complete response again in natural literary Bangla (Bengali script), with "
-        "the same structure and the same number of sections. Do not summarise the "
-        "second pass - it is a full translation, not a digest."
     ),
 }
 
@@ -211,7 +203,7 @@ def run_action(selected_action, book_name, author_name, book_text=None, language
         max_tokens = 4096
 
     lang_rule = LANGUAGE_RULES.get(language, "")
-    if language in ("bn", "both"):
+    if language == "bn":
         system_msg += (
             " You are fluent in Bangla and write it with the same care as English."
         )
@@ -480,10 +472,54 @@ def build_pdf(title, author, action_label, body):
 # --- Routes ------------------------------------------------------------------
 
 
+def count_leads():
+    """How many emails have been captured, for the health check."""
+    dsn = os.getenv("DATABASE_URL")
+    if dsn:
+        try:
+            import psycopg
+
+            with psycopg.connect(dsn, connect_timeout=5) as conn:
+                with conn.cursor() as cur:
+                    cur.execute("SELECT COUNT(*) FROM pdf_leads")
+                    return cur.fetchone()[0]
+        except Exception:
+            return None
+    try:
+        with open(LEADS_FILE, encoding="utf-8") as f:
+            return sum(1 for line in f if line.strip())
+    except FileNotFoundError:
+        return 0
+    except Exception:
+        return None
+
+
 @app.route("/healthz")
 def healthz():
-    """Railway health check (railway.toml -> healthcheckPath)."""
-    return jsonify(status="ok", api_key_configured=bool(os.getenv("ANTHROPIC_API_KEY"))), 200
+    """Railway health check (railway.toml -> healthcheckPath).
+
+    Also reports where captured emails are going, so the storage setup can be
+    checked by opening one URL instead of guessing.
+    """
+    if os.getenv("DATABASE_URL"):
+        storage, durable = "postgres", True
+    elif LEADS_FILE.startswith(("/data", "/var/data")):
+        storage, durable = f"volume file ({LEADS_FILE})", True
+    else:
+        storage, durable = f"container file ({LEADS_FILE})", False
+
+    return jsonify(
+        status="ok",
+        api_key_configured=bool(os.getenv("ANTHROPIC_API_KEY")),
+        email_storage=storage,
+        email_storage_survives_deploy=durable,
+        email_notifications=bool(SMTP_HOST and LEAD_NOTIFY_EMAIL),
+        leads_export_enabled=bool(LEADS_TOKEN),
+        leads_captured=count_leads(),
+        warning=None if durable else
+        "Captured emails are on the container disk and are WIPED on every deploy. "
+        "Set DATABASE_URL, mount a volume at /data, or configure SMTP.",
+    ), 200
 
 
 @app.errorhandler(413)
